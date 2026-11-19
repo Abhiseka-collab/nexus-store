@@ -7,7 +7,7 @@ export interface Product {
   longDescription: string;
   price: number;
   originalPrice?: number;
-  category: 'Notion Templates' | 'Design & 3D' | 'E-Books & Guides' | 'Developer Kits';
+  category: 'Spreadsheets & Systems' | 'Notion Templates' | 'Design & 3D' | 'E-Books & Guides' | 'Developer Kits';
   badge?: 'Bestseller' | 'New' | 'Popular' | 'Hot';
   rating: number;
   reviewCount: number;

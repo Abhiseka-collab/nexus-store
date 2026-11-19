@@ -95,8 +95,8 @@ export function normalizeDiscount(val: any): number {
 export function validateProductSchema(item: any): Product | null {
   if (!item || typeof item !== 'object') return null;
 
-  const validCategories = ['Notion Templates', 'Design & 3D', 'E-Books & Guides', 'Developer Kits'];
-  const category = validCategories.includes(item.category) ? item.category : 'Notion Templates';
+  const validCategories = ['Spreadsheets & Systems', 'Notion Templates', 'Design & 3D', 'E-Books & Guides', 'Developer Kits'];
+  const category = validCategories.includes(item.category) ? item.category : 'Spreadsheets & Systems';
 
   const title = sanitizeText(item.title || 'Untitled Product', 120);
   if (!title) return null;

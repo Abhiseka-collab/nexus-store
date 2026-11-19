@@ -36,10 +36,21 @@ export const OrderSuccessModal: React.FC = () => {
 
   if (!isSuccessOpen || !latestOrder) return null;
 
-  // Real client-side file download simulation
+  // Real file download
   const handleDownload = (productTitle: string, filename: string) => {
+    // If delivering real spreadsheet asset
+    if (filename.endsWith('.xlsx')) {
+      const link = document.createElement('a');
+      link.href = `/downloads/${filename}`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
     const dummyContent = `=====================================================
-NEXUS DIGITAL - PRODUCT DELIVERY & LICENSE
+NEXUS - PRODUCT DELIVERY & LICENSE
 =====================================================
 
 Product: ${productTitle}
@@ -52,8 +63,7 @@ License Type: Commercial Single-Seat License
 Thank you for your purchase!
 Your files and access links are active and permanently backed up.
 
-Access URL: https://nexus-digital.io/download/${latestOrder.downloadToken}
-Support: support@nexus-digital.io
+Support: solution00000@outlook.com
 
 =====================================================
 `;

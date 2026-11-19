@@ -7,6 +7,7 @@ import { ProductCard } from '@/components/ProductCard';
 
 const CATEGORIES = [
   'All Products',
+  'Spreadsheets & Systems',
   'Notion Templates',
   'Design & 3D',
   'E-Books & Guides',

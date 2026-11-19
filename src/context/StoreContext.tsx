@@ -127,11 +127,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               p.id !== 'prod-minimal-lightroom-presets' &&
               p.id !== 'prod-3d-holographic-icons'
           );
-          setProducts(userProducts);
-          safeSetItem('nexus_products', JSON.stringify(userProducts));
+          if (userProducts.length > 0) {
+            setProducts(userProducts);
+            safeSetItem('nexus_products', JSON.stringify(userProducts));
+          } else {
+            setProducts(PRODUCTS);
+            safeSetItem('nexus_products', JSON.stringify(PRODUCTS));
+          }
         }
       } else {
-        setProducts([]);
+        setProducts(PRODUCTS);
+        safeSetItem('nexus_products', JSON.stringify(PRODUCTS));
       }
 
       const storedSettings = localStorage.getItem('nexus_settings');
