@@ -15,6 +15,8 @@ interface CartContextType {
   discountRate: number;
   latestOrder: Order | null;
   itemCount: number;
+  currency: 'USD' | 'INR';
+  currencySymbol: string;
   subtotal: number;
   discountAmount: number;
   total: number;
@@ -35,7 +37,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { recordOrder, settings } = useStore();
+  const { recordOrder, settings, currency, currencySymbol } = useStore();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -148,7 +150,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsSuccessOpen(false);
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => {
+    const itemPrice = currency === 'INR'
+      ? (item.product.priceInr || Math.round(item.product.price * 75))
+      : item.product.price;
+    return sum + itemPrice * item.quantity;
+  }, 0);
   const discountAmount = Math.round(subtotal * discountRate * 100) / 100;
   const total = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -162,6 +169,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subtotal,
       discount: discountAmount,
       total,
+      currency,
       promoCode: appliedPromo || undefined,
       createdAt: new Date().toLocaleDateString('en-US', {
         month: 'short',
@@ -193,6 +201,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         discountRate,
         latestOrder,
         itemCount,
+        currency,
+        currencySymbol,
         subtotal,
         discountAmount,
         total,

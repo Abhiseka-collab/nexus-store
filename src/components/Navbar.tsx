@@ -8,7 +8,7 @@ import { useStore } from '@/context/StoreContext';
 
 export const Navbar: React.FC = () => {
   const { itemCount, toggleCart } = useCart();
-  const { settings } = useStore();
+  const { settings, currency, setCurrency } = useStore();
 
   return (
     <>
@@ -39,6 +39,10 @@ export const Navbar: React.FC = () => {
             <a href="/#products" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Products
             </a>
+            <a href="/#spreadsheet-tour" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+              <span>Spreadsheet Tour</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800">16 Tabs</span>
+            </a>
             <a href="/#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Features
             </a>
@@ -48,7 +52,37 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Action Area */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Currency Switcher */}
+            <div className="flex items-center p-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setCurrency('USD')}
+                className={`px-2.5 py-1 rounded-full transition-all flex items-center gap-1 ${
+                  currency === 'USD'
+                    ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+                title="Switch to US Dollar ($)"
+              >
+                <span>🇺🇸</span>
+                <span className="font-mono text-[11px]">$ USD</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrency('INR')}
+                className={`px-2.5 py-1 rounded-full transition-all flex items-center gap-1 ${
+                  currency === 'INR'
+                    ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+                title="Switch to Indian Rupee (₹ UPI)"
+              >
+                <span>🇮🇳</span>
+                <span className="font-mono text-[11px]">₹ INR</span>
+              </button>
+            </div>
+
             {/* Admin Portal Link */}
             <Link
               href="/admin"
@@ -56,7 +90,7 @@ export const Navbar: React.FC = () => {
               title="Admin Portal (Owner Access)"
             >
               <Lock className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="font-semibold">Admin</span>
+              <span className="font-semibold hidden sm:inline">Admin</span>
             </Link>
 
             <div className="hidden lg:flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800">

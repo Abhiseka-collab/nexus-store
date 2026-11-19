@@ -7,6 +7,8 @@ export interface Product {
   longDescription: string;
   price: number;
   originalPrice?: number;
+  priceInr?: number;
+  originalPriceInr?: number;
   category: 'Spreadsheets & Systems' | 'Notion Templates' | 'Design & 3D' | 'E-Books & Guides' | 'Developer Kits';
   badge?: 'Bestseller' | 'New' | 'Popular' | 'Hot';
   rating: number;
@@ -35,6 +37,7 @@ export interface Order {
   subtotal: number;
   discount: number;
   total: number;
+  currency?: 'USD' | 'INR';
   promoCode?: string;
   createdAt: string;
   downloadToken: string;

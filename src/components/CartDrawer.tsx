@@ -15,6 +15,8 @@ export const CartDrawer: React.FC = () => {
     subtotal,
     discountAmount,
     total,
+    currency,
+    currencySymbol,
     appliedPromo,
     discountRate,
     applyPromo,
@@ -192,18 +194,22 @@ export const CartDrawer: React.FC = () => {
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
                   <span>Subtotal</span>
-                  <span className="font-medium text-zinc-900 dark:text-white">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium text-zinc-900 dark:text-white">
+                    {currency === 'INR' ? `₹${subtotal.toLocaleString('en-IN')}` : `$${subtotal.toFixed(2)}`}
+                  </span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                     <span>Discount ({appliedPromo})</span>
-                    <span className="font-medium">-${discountAmount.toFixed(2)}</span>
+                    <span className="font-medium">
+                      -{currency === 'INR' ? `₹${discountAmount.toLocaleString('en-IN')}` : `$${discountAmount.toFixed(2)}`}
+                    </span>
                   </div>
                 )}
                 <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 flex justify-between text-sm">
                   <span className="font-bold text-zinc-900 dark:text-white">Total</span>
                   <span className="font-extrabold text-base text-zinc-900 dark:text-white">
-                    ${total.toFixed(2)}
+                    {currency === 'INR' ? `₹${total.toLocaleString('en-IN')}` : `$${total.toFixed(2)}`}
                   </span>
                 </div>
               </div>

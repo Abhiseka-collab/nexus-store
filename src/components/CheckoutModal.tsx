@@ -6,7 +6,17 @@ import { useCart } from '@/context/CartContext';
 import { sanitizeText } from '@/utils/security';
 
 export const CheckoutModal: React.FC = () => {
-  const { isCheckoutOpen, closeCheckout, completeOrder, items, total, discountAmount, appliedPromo } = useCart();
+  const {
+    isCheckoutOpen,
+    closeCheckout,
+    completeOrder,
+    items,
+    total,
+    discountAmount,
+    appliedPromo,
+    currency,
+    currencySymbol,
+  } = useCart();
 
   const [name, setName] = useState('Alex Rivera');
   const [email, setEmail] = useState('alex.creator@example.com');
@@ -15,6 +25,9 @@ export const CheckoutModal: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isCheckoutOpen) return null;
+
+  // Amount in INR for Razorpay payment processing
+  const chargeAmountInr = currency === 'INR' ? Math.round(total) : Math.round(total * 86);
 
   // On-demand loader for official Razorpay checkout script
   const loadRazorpayScript = (): Promise<boolean> => {
@@ -59,7 +72,7 @@ export const CheckoutModal: React.FC = () => {
       const res = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total, currency: 'INR' }),
+        body: JSON.stringify({ amount: chargeAmountInr, currency: 'INR' }),
       });
 
       if (!res.ok) {
@@ -282,15 +295,22 @@ export const CheckoutModal: React.FC = () => {
               <span>{items.length} {items.length === 1 ? 'item' : 'items'} in order</span>
               {discountAmount > 0 && (
                 <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                  Promo {appliedPromo} applied (-${discountAmount.toFixed(2)})
+                  Promo {appliedPromo} applied (-{currency === 'INR' ? `₹${discountAmount.toLocaleString('en-IN')}` : `$${discountAmount.toFixed(2)}`})
                 </span>
               )}
             </div>
             <div className="flex justify-between items-baseline pt-1">
               <span className="font-bold text-zinc-900 dark:text-white text-sm">Total Due Today:</span>
-              <span className="font-extrabold text-indigo-600 dark:text-indigo-400 text-lg">
-                ${total.toFixed(2)}
-              </span>
+              <div className="text-right">
+                <span className="font-extrabold text-indigo-600 dark:text-indigo-400 text-lg block">
+                  {currency === 'INR' ? `₹${total.toLocaleString('en-IN')}` : `$${total.toFixed(2)}`}
+                </span>
+                {currency === 'USD' && (
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    (Charged as ₹{chargeAmountInr.toLocaleString('en-IN')} INR at checkout)
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -308,7 +328,9 @@ export const CheckoutModal: React.FC = () => {
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Pay Securely with Razorpay (${total.toFixed(2)})</span>
+                <span>
+                  Pay Securely with Razorpay ({currency === 'INR' ? `₹${total.toLocaleString('en-IN')}` : `$${total.toFixed(2)}`})
+                </span>
               </>
             )}
           </button>

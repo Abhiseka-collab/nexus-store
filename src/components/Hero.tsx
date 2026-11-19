@@ -55,10 +55,10 @@ export const Hero: React.FC = () => {
             <ArrowDown className="w-4 h-4" />
           </a>
           <a
-            href="#features"
+            href="#spreadsheet-tour"
             className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold text-sm border border-zinc-200 dark:border-zinc-800 transition-all flex items-center justify-center gap-2"
           >
-            <span>How Delivery Works</span>
+            <span>Peek Inside 16-in-1 System →</span>
           </a>
         </div>
 

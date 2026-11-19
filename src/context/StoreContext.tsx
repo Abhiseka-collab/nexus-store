@@ -30,14 +30,31 @@ const DEFAULT_PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60 * 1000; // 60 seconds
 
+export type SupportedCurrency = 'USD' | 'INR';
+
+export interface ProductPriceInfo {
+  price: number;
+  originalPrice?: number;
+  symbol: string;
+  currency: SupportedCurrency;
+  formattedPrice: string;
+  formattedOriginalPrice?: string;
+  discountPercent?: number;
+}
+
 interface StoreContextType {
   products: Product[];
   settings: StoreSettings;
   orders: Order[];
   logs: SystemLog[];
   trafficEvents: TrafficEvent[];
+  currency: SupportedCurrency;
+  currencySymbol: string;
   isAdminAuthenticated: boolean;
   lockoutRemainingSeconds: number;
+  setCurrency: (currency: SupportedCurrency) => void;
+  formatPrice: (amountUsd: number, amountInr?: number) => string;
+  getProductPrice: (product: Product) => ProductPriceInfo;
   addProduct: (product: Omit<Product, 'id'>) => Product;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -62,6 +79,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
+  const [currency, setCurrencyState] = useState<SupportedCurrency>('USD');
   const [orders, setOrders] = useState<Order[]>([]);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [trafficEvents, setTrafficEvents] = useState<TrafficEvent[]>([]);
@@ -176,6 +194,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (sessionAuth === 'true') {
         setIsAdminAuthenticated(true);
       }
+
+      const storedCurrency = localStorage.getItem('nexus_currency') as SupportedCurrency | null;
+      if (storedCurrency === 'USD' || storedCurrency === 'INR') {
+        setCurrencyState(storedCurrency);
+      } else {
+        // Auto-detect Indian timezone or locale
+        try {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+          if (
+            tz.toLowerCase().includes('kolkata') ||
+            tz.toLowerCase().includes('calcutta') ||
+            navigator.language === 'en-IN' ||
+            navigator.language === 'hi'
+          ) {
+            setCurrencyState('INR');
+          }
+        } catch {
+          // default USD
+        }
+      }
     } catch {
       // Storage parsing failed, keep defaults
     } finally {
@@ -206,6 +244,46 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!isLoaded) return;
     safeSetItem('nexus_logs', JSON.stringify(logs));
   }, [logs, isLoaded]);
+
+  const setCurrency = useCallback((newCurrency: SupportedCurrency) => {
+    setCurrencyState(newCurrency);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nexus_currency', newCurrency);
+    }
+  }, []);
+
+  const getProductPrice = useCallback((product: Product): ProductPriceInfo => {
+    const isINR = currency === 'INR';
+    const symbol = isINR ? '₹' : '$';
+    const price = isINR ? (product.priceInr || Math.round(product.price * 75)) : product.price;
+    const originalPrice = isINR
+      ? (product.originalPriceInr || (product.originalPrice ? Math.round(product.originalPrice * 75) : undefined))
+      : product.originalPrice;
+
+    const discountPercent = originalPrice && originalPrice > price
+      ? Math.round(((originalPrice - price) / originalPrice) * 100)
+      : undefined;
+
+    return {
+      price,
+      originalPrice,
+      symbol,
+      currency,
+      formattedPrice: isINR ? `₹${price.toLocaleString('en-IN')}` : `$${price}`,
+      formattedOriginalPrice: originalPrice
+        ? (isINR ? `₹${originalPrice.toLocaleString('en-IN')}` : `$${originalPrice}`)
+        : undefined,
+      discountPercent,
+    };
+  }, [currency]);
+
+  const formatPrice = useCallback((amountUsd: number, amountInr?: number): string => {
+    if (currency === 'INR') {
+      const val = amountInr !== undefined ? amountInr : Math.round(amountUsd * 75);
+      return `₹${val.toLocaleString('en-IN')}`;
+    }
+    return `$${amountUsd.toFixed(amountUsd % 1 === 0 ? 0 : 2)}`;
+  }, [currency]);
 
   const addLog = useCallback((type: 'info' | 'warning' | 'error' | 'success', message: string) => {
     const newLog: SystemLog = {
@@ -568,8 +646,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         orders,
         logs,
         trafficEvents,
+        currency,
+        currencySymbol: currency === 'INR' ? '₹' : '$',
         isAdminAuthenticated,
         lockoutRemainingSeconds,
+        setCurrency,
+        formatPrice,
+        getProductPrice,
         addProduct,
         updateProduct,
         deleteProduct,

@@ -103,6 +103,8 @@ export function validateProductSchema(item: any): Product | null {
 
   const price = sanitizePrice(item.price);
   const originalPrice = item.originalPrice ? sanitizePrice(item.originalPrice) : undefined;
+  const priceInr = item.priceInr ? sanitizePrice(item.priceInr) : undefined;
+  const originalPriceInr = item.originalPriceInr ? sanitizePrice(item.originalPriceInr) : undefined;
   const thumbnail = sanitizeUrl(item.thumbnail);
 
   const features = Array.isArray(item.features)
@@ -122,6 +124,8 @@ export function validateProductSchema(item: any): Product | null {
     longDescription: sanitizeText(item.longDescription || item.description || '', 2000),
     price,
     originalPrice,
+    priceInr,
+    originalPriceInr,
     category: category as any,
     badge: ['Bestseller', 'Hot', 'New', 'Popular'].includes(item.badge) ? item.badge : undefined,
     rating: typeof item.rating === 'number' && item.rating >= 1 && item.rating <= 5 ? item.rating : 5.0,

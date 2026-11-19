@@ -1,16 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Star, CheckCircle, Shield, Download, ShoppingBag, ArrowRight } from 'lucide-react';
+import { X, Star, CheckCircle, Shield, Download, ShoppingBag, ArrowRight, Table } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useStore } from '@/context/StoreContext';
 import { SafeImage } from '@/components/SafeImage';
 
 export const ProductModal: React.FC = () => {
   const { viewingProduct, setViewingProduct, addToCart, openCheckout } = useCart();
+  const { getProductPrice } = useStore();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   if (!viewingProduct) return null;
 
+  const priceInfo = getProductPrice(viewingProduct);
   const activeImage = selectedImage || viewingProduct.thumbnail;
 
   const handleBuyNow = () => {
@@ -21,6 +24,14 @@ export const ProductModal: React.FC = () => {
 
   const handleAddToCart = () => {
     addToCart(viewingProduct);
+  };
+
+  const handleTourJump = () => {
+    setViewingProduct(null);
+    const elem = document.getElementById('spreadsheet-tour');
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -155,24 +166,42 @@ export const ProductModal: React.FC = () => {
             </div>
 
             {/* Price & CTA section */}
-            <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-baseline justify-between mb-4">
+            <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
+              
+              {/* Tour Jump Banner */}
+              <button
+                type="button"
+                onClick={handleTourJump}
+                className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-200 dark:border-indigo-800/80 text-left flex items-center justify-between group hover:border-indigo-400 transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Table className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                    Interactive Tour: Explore All 16 Spreadsheets
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-0.5 transition-transform">
+                  Peek Inside →
+                </span>
+              </button>
+
+              <div className="flex items-baseline justify-between">
                 <div>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 block">Total Price:</span>
                   <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-black text-zinc-900 dark:text-white">
-                      ${viewingProduct.price}
+                      {priceInfo.formattedPrice}
                     </span>
-                    {viewingProduct.originalPrice && (
+                    {priceInfo.formattedOriginalPrice && (
                       <span className="text-sm text-zinc-400 line-through">
-                        ${viewingProduct.originalPrice}
+                        {priceInfo.formattedOriginalPrice}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                   <Shield className="w-4 h-4" />
-                  <span>30-Day Money Back</span>
+                  <span>30-Day Guarantee</span>
                 </div>
               </div>
 

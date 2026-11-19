@@ -10,6 +10,8 @@ export const PRODUCTS: Product[] = [
     longDescription: 'The Personal Growth System is a comprehensive, production-grade Life Operating System built directly in Microsoft Excel and compatible with Google Sheets. Unlike cluttered web apps with monthly subscriptions, this spreadsheet gives you complete privacy, offline ownership, and an interconnected dashboard that links your yearly themes, 20 high-leverage goals, active projects, tasks, and daily habit reflections together in real time.',
     price: 29,
     originalPrice: 59,
+    priceInr: 1999,
+    originalPriceInr: 3999,
     category: 'Spreadsheets & Systems',
     badge: 'New',
     rating: 5.0,

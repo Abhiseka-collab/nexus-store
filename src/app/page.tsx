@@ -5,6 +5,7 @@ import { useStore } from '@/context/StoreContext';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { ProductCatalog } from '@/components/ProductCatalog';
+import { SpreadsheetShowcase } from '@/components/SpreadsheetShowcase';
 import { HowItWorks } from '@/components/HowItWorks';
 import { FaqSection } from '@/components/FaqSection';
 import { Footer } from '@/components/Footer';
@@ -30,6 +31,7 @@ export default function Home() {
       <main className="flex-1">
         <Hero />
         <ProductCatalog />
+        <SpreadsheetShowcase />
         <HowItWorks />
         <FaqSection />
       </main>

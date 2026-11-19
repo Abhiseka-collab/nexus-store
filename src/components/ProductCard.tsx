@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Star, ShoppingBag, Eye, Check, FileText } from 'lucide-react';
 import { Product } from '@/types/product';
 import { useCart } from '@/context/CartContext';
+import { useStore } from '@/context/StoreContext';
 import { SafeImage } from '@/components/SafeImage';
 
 interface ProductCardProps {
@@ -12,7 +13,10 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, setViewingProduct } = useCart();
+  const { getProductPrice } = useStore();
   const [justAdded, setJustAdded] = useState(false);
+
+  const priceInfo = getProductPrice(product);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -20,10 +24,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
   };
-
-  const discountPercent = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : null;
 
   const badgeColor = {
     Bestseller: 'bg-amber-500 text-white shadow-amber-500/20',
@@ -52,9 +52,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {product.badge}
             </span>
           )}
-          {discountPercent && (
+          {priceInfo.discountPercent && (
             <span className="text-[11px] font-bold px-2 py-1 rounded-full bg-zinc-900/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30">
-              Save {discountPercent}%
+              Save {priceInfo.discountPercent}%
             </span>
           )}
         </div>
@@ -118,11 +118,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-black text-zinc-900 dark:text-white">
-              ${product.price}
+              {priceInfo.formattedPrice}
             </span>
-            {product.originalPrice && (
+            {priceInfo.formattedOriginalPrice && (
               <span className="text-xs text-zinc-400 line-through">
-                ${product.originalPrice}
+                {priceInfo.formattedOriginalPrice}
               </span>
             )}
           </div>
