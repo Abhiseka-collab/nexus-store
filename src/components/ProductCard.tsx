@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Star, ShoppingBag, Eye, Check, FileSpreadsheet, Zap } from 'lucide-react';
 import { Product } from '@/types/product';
 import { useCart } from '@/context/CartContext';
@@ -15,6 +15,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, setViewingProduct } = useCart();
   const { getProductPrice } = useStore();
   const [justAdded, setJustAdded] = useState(false);
+
+  // Dynamic Cursor Spotlight
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
 
   const priceInfo = getProductPrice(product);
 
@@ -34,9 +45,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <div
+      ref={cardRef}
       onClick={() => setViewingProduct(product)}
-      className="group relative flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800/90 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-500/60 transition-all duration-300 hover:-translate-y-1.5 overflow-hidden cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onMouseMove={handleMouseMove}
+      className="group relative flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800/90 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/15 hover:border-indigo-400 dark:hover:border-indigo-500/70 transition-all duration-300 hover:-translate-y-1.5 overflow-hidden cursor-pointer"
     >
+      {/* Radiant Spotlight Cursor Glow */}
+      {isHovered && (
+        <div
+          className="pointer-events-none absolute -inset-px rounded-2xl transition-opacity duration-300 z-10 hidden sm:block"
+          style={{
+            background: `radial-gradient(350px circle at ${mousePos.x}px ${mousePos.y}px, rgba(99, 102, 241, 0.22), transparent 75%)`,
+          }}
+        />
+      )}
+
       {/* Thumbnail Container */}
       <div className="relative aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         <SafeImage
@@ -49,7 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
         {/* Top Badges */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-2 z-20">
           {product.badge && (
             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md tracking-wider uppercase ${badgeColor}`}>
               {product.badge}
@@ -63,7 +88,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         {/* Quick View Overlay Button */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4 z-20">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -78,7 +103,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
 
       {/* Content */}
-      <div className="p-5 flex-1 flex flex-col justify-between">
+      <div className="p-5 flex-1 flex flex-col justify-between relative z-20">
         <div>
           {/* Category & Status */}
           <div className="flex items-center justify-between text-xs mb-2">

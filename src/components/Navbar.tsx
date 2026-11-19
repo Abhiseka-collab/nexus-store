@@ -2,13 +2,15 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Sparkles, ShieldCheck, Zap, Lock } from 'lucide-react';
+import { ShoppingBag, Sparkles, ShieldCheck, Zap, Lock, Sun, Moon } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export const Navbar: React.FC = () => {
   const { itemCount, toggleCart } = useCart();
   const { settings, currency, setCurrency } = useStore();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <>
@@ -43,6 +45,9 @@ export const Navbar: React.FC = () => {
               <span>Spreadsheet Tour</span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800">16 Tabs</span>
             </a>
+            <a href="/#roi-calculator" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              ROI Calculator
+            </a>
             <a href="/#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Features
             </a>
@@ -52,13 +57,13 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Action Area */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Currency Switcher */}
             <div className="flex items-center p-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setCurrency('USD')}
-                className={`px-2.5 py-1 rounded-full transition-all flex items-center gap-1 ${
+                className={`px-2 py-1 rounded-full transition-all flex items-center gap-1 ${
                   currency === 'USD'
                     ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
@@ -66,12 +71,12 @@ export const Navbar: React.FC = () => {
                 title="Switch to US Dollar ($)"
               >
                 <span>🇺🇸</span>
-                <span className="font-mono text-[11px]">$ USD</span>
+                <span className="font-mono text-[11px]">$</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCurrency('INR')}
-                className={`px-2.5 py-1 rounded-full transition-all flex items-center gap-1 ${
+                className={`px-2 py-1 rounded-full transition-all flex items-center gap-1 ${
                   currency === 'INR'
                     ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
@@ -79,14 +84,29 @@ export const Navbar: React.FC = () => {
                 title="Switch to Indian Rupee (₹ UPI)"
               >
                 <span>🇮🇳</span>
-                <span className="font-mono text-[11px]">₹ INR</span>
+                <span className="font-mono text-[11px]">₹</span>
               </button>
             </div>
+
+            {/* Dark / Light Mode Switcher */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer shadow-xs active:scale-95"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600" />
+              )}
+            </button>
 
             {/* Admin Portal Link */}
             <Link
               href="/admin"
-              className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 transition-all"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 transition-all"
               title="Admin Portal (Owner Access)"
             >
               <Lock className="w-3.5 h-3.5 text-indigo-500" />
@@ -101,7 +121,7 @@ export const Navbar: React.FC = () => {
             {/* Cart Trigger */}
             <button
               onClick={() => toggleCart(true)}
-              className="relative flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-900 px-4 py-2 rounded-xl font-medium text-sm transition-all shadow-sm hover:shadow active:scale-95"
+              className="relative flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-900 px-3.5 sm:px-4 py-2 rounded-xl font-medium text-sm transition-all shadow-sm hover:shadow active:scale-95"
               aria-label="View shopping cart"
             >
               <ShoppingBag className="w-4 h-4" />
