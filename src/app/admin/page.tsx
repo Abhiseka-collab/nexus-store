@@ -32,7 +32,12 @@ import {
   Percent,
   Eye,
   Globe,
-  Smartphone
+  Smartphone,
+  Tag,
+  Copy,
+  Mail,
+  FileSpreadsheet,
+  Check,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { Product } from '@/types/product';
@@ -43,27 +48,48 @@ export default function AdminPage() {
     products,
     settings,
     orders,
+    promos,
     logs,
     isAdminAuthenticated,
     lockoutRemainingSeconds,
+    currency,
+    currencySymbol,
     loginAdmin,
     logoutAdmin,
     addProduct,
     updateProduct,
     deleteProduct,
     updateSettings,
+    addPromoCode,
+    deletePromoCode,
+    togglePromoCode,
     changeAdminPassword,
     createBackup,
     restoreBackup,
     runSystemDiagnostics,
     clearLogs,
     getAnalytics,
+    formatPrice,
+    getProductPrice,
   } = useStore();
 
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'products' | 'traffic' | 'settings' | 'orders' | 'diagnostics' | 'backups'>('traffic');
+  const [activeTab, setActiveTab] = useState<'products' | 'traffic' | 'settings' | 'orders' | 'promos' | 'diagnostics' | 'backups'>('traffic');
   const [trafficTimeframe, setTrafficTimeframe] = useState<'day' | 'week' | 'month'>('week');
+
+  // Orders State
+  const [orderSearch, setOrderSearch] = useState('');
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
+  // Promo Codes State
+  const [newPromoCode, setNewPromoCode] = useState('');
+  const [newPromoDiscount, setNewPromoDiscount] = useState(25);
+  const [promoFeedback, setPromoFeedback] = useState<{ message: string; error?: boolean } | null>(null);
+
+  // Quick Announcement State
+  const [quickAnnouncement, setQuickAnnouncement] = useState(settings.announcementText);
+  const [announcementSaved, setAnnouncementSaved] = useState(false);
 
   // Product Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -259,7 +285,114 @@ export default function AdminPage() {
     p.category.toLowerCase().includes(productSearch.toLowerCase())
   );
 
+  const filteredOrders = orders.filter((o) => {
+    if (!orderSearch.trim()) return true;
+    const q = orderSearch.toLowerCase();
+    return (
+      o.id.toLowerCase().includes(q) ||
+      o.customerName.toLowerCase().includes(q) ||
+      o.customerEmail.toLowerCase().includes(q) ||
+      o.downloadToken.toLowerCase().includes(q) ||
+      (o.promoCode && o.promoCode.toLowerCase().includes(q))
+    );
+  });
+
+  const exportOrdersToCsv = () => {
+    if (orders.length === 0) {
+      alert('No orders available to export yet. Test a checkout on the store to record an order.');
+      return;
+    }
+    const headers = [
+      'Order ID',
+      'Date',
+      'Customer Name',
+      'Customer Email',
+      'Items Purchased',
+      'Gross Total',
+      'Currency',
+      'Estimated Gateway Fee (2.36%)',
+      'Estimated Net Bank Payout',
+      'Promo Code',
+      'Digital License Token',
+    ];
+
+    const rows = orders.map((o) => {
+      const gross = o.total;
+      const fee = Math.round(gross * 0.0236 * 100) / 100;
+      const net = Math.round((gross - fee) * 100) / 100;
+      const itemsList = o.items.map((i) => `${i.quantity}x ${i.product.title}`).join('; ');
+
+      return [
+        o.id,
+        `"${o.createdAt}"`,
+        `"${(o.customerName || '').replace(/"/g, '""')}"`,
+        `"${(o.customerEmail || '').replace(/"/g, '""')}"`,
+        `"${itemsList.replace(/"/g, '""')}"`,
+        gross.toFixed(2),
+        o.currency || currency,
+        fee.toFixed(2),
+        net.toFixed(2),
+        `"${o.promoCode || 'None'}"`,
+        o.downloadToken,
+      ];
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nexus_orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyCustomerDownload = (order: (typeof orders)[0]) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nexus-store-5s8orsfkz-abhi-4d1e.vercel.app';
+    const link = `${origin}/downloads/Personal_Growth_System.xlsx?order=${order.id}&token=${order.downloadToken}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(order.id);
+    setTimeout(() => setCopiedLink(null), 2500);
+  };
+
+  const handleEmailCustomerReceipt = (order: (typeof orders)[0]) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nexus-store-5s8orsfkz-abhi-4d1e.vercel.app';
+    const link = `${origin}/downloads/Personal_Growth_System.xlsx?order=${order.id}&token=${order.downloadToken}`;
+    const subject = encodeURIComponent(`NEXUS Delivery: Your Personal Growth System Download (Order #${order.id})`);
+    const body = encodeURIComponent(
+      `Hi ${order.customerName},\n\nThank you for choosing NEXUS!\n\nHere are your order and download details:\n- Order ID: ${order.id}\n- Product: Personal Growth System (.xlsx master template)\n- License Token: ${order.downloadToken}\n\nYou can download your master spreadsheet anytime using your secure link:\n${link}\n\nIf you have any questions or need setup guidance, reply directly to this email.\n\nBest regards,\nNEXUS Team\n${settings.supportEmail || 'solution00000@outlook.com'}`
+    );
+    window.open(`mailto:${order.customerEmail}?subject=${subject}&body=${body}`, '_blank');
+  };
+
+  const handleCreatePromo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPromoCode.trim()) return;
+    const ok = addPromoCode(newPromoCode, newPromoDiscount / 100);
+    if (ok) {
+      setPromoFeedback({ message: `Promo code "${newPromoCode.toUpperCase()}" (${newPromoDiscount}%) created successfully!` });
+      setNewPromoCode('');
+      setTimeout(() => setPromoFeedback(null), 3000);
+    } else {
+      setPromoFeedback({ message: 'Invalid code or discount percentage.', error: true });
+    }
+  };
+
+  const handleSaveQuickAnnouncement = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateSettings({ announcementText: quickAnnouncement });
+    setAnnouncementSaved(true);
+    setTimeout(() => setAnnouncementSaved(false), 2500);
+  };
+
   const analytics = getAnalytics(trafficTimeframe);
+
+  // Financial calculations
+  const totalGrossOrders = orders.reduce((sum, o) => sum + o.total, 0);
+  const totalEstimatedFees = Math.round(totalGrossOrders * 0.0236 * 100) / 100;
+  const totalNetBankPayout = Math.max(0, Math.round((totalGrossOrders - totalEstimatedFees) * 100) / 100);
 
   // 1. LOCKED VIEW (Authentication Screen)
   if (!isAdminAuthenticated) {
@@ -372,6 +505,91 @@ export default function AdminPage() {
       {/* Main Admin Workspace */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1">
         
+        {/* Executive Real-Time KPI & Health Ribbon */}
+        <div className="bg-gradient-to-r from-zinc-900 via-zinc-900 to-indigo-950/40 border border-zinc-800 rounded-3xl p-5 mb-8 shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/25">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-white">NEXUS Executive Cockpit</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-mono font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    LIVE PRODUCTION
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Storefront: <strong className="text-white">{settings.storeName}</strong> • Flagship Asset: <strong>Personal Growth System (.xlsx)</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Action Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={exportOrdersToCsv}
+                className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 transition-all cursor-pointer"
+                title="Export all orders to Excel / CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Export Orders (.CSV)</span>
+              </button>
+
+              <a
+                href="/"
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold flex items-center gap-1.5 border border-indigo-700/50 transition-all"
+              >
+                <span>Live Store</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <div className="px-2.5 py-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-[11px] font-mono text-zinc-400 flex items-center gap-2">
+                <span>⚡ Gateway:</span>
+                <span className="text-emerald-400 font-bold">Razorpay Active</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Metrics Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+              <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Gross Sales ({trafficTimeframe})</span>
+              <span className="text-lg font-black text-white mt-0.5 block">
+                {currencySymbol}{analytics.totalRevenue.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-zinc-400">{orders.length} orders total</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+              <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Est. Net Bank Payout</span>
+              <span className="text-lg font-black text-emerald-400 mt-0.5 block">
+                {currencySymbol}{Math.max(0, Math.round((analytics.totalRevenue * 0.9764) * 100) / 100).toLocaleString()}
+              </span>
+              <span className="text-[10px] text-zinc-400">After ~2.3% Razorpay fee</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+              <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Total Store Visits</span>
+              <span className="text-lg font-black text-indigo-400 mt-0.5 block">
+                {analytics.totalVisits.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-zinc-400">{analytics.uniqueVisitors} unique visitors</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+              <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Conversion Rate</span>
+              <span className="text-lg font-black text-purple-400 mt-0.5 block">
+                {analytics.conversionRate}%
+              </span>
+              <span className="text-[10px] text-zinc-400">Avg ticket: ${analytics.avgOrderValue}</span>
+            </div>
+          </div>
+        </div>
+        
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-zinc-800">
           <button
@@ -396,6 +614,30 @@ export default function AdminPage() {
           >
             <LineChart className="w-4 h-4" />
             <span>Traffic & Conversions</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              activeTab === 'orders'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span>Orders Received ({orders.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('promos')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              activeTab === 'promos'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <Tag className="w-4 h-4" />
+            <span>Promos & Drops ({promos.length})</span>
           </button>
 
           <button
@@ -951,63 +1193,318 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 3: ORDERS LOG */}
+        {/* TAB 3: ORDERS LOG & FULFILLMENT */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-white">Sales & Customer Orders</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Every transaction completed in your store is recorded here.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-indigo-400" />
+                  <span>Sales & Customer Orders ({orders.length})</span>
+                </h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Instant customer fulfillment links, pre-filled email receipts, and net bank payouts.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={exportOrdersToCsv}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-2 border border-zinc-700 shadow-md transition-all cursor-pointer"
+                  title="Download all orders in Excel/CSV format"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                  <span>Export to Excel (.CSV)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Financial Payout Summary Strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800">
+                <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block">Gross Sales Recorded</span>
+                <span className="text-2xl font-black text-white mt-1 block">
+                  {currencySymbol}{totalGrossOrders.toLocaleString()}
+                </span>
+                <span className="text-[11px] text-zinc-400 mt-0.5 block">{orders.length} total paid orders</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800">
+                <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block">Estimated Gateway Fees</span>
+                <span className="text-2xl font-black text-rose-400 mt-1 block">
+                  -{currencySymbol}{totalEstimatedFees.toLocaleString()}
+                </span>
+                <span className="text-[11px] text-zinc-400 mt-0.5 block">~2.36% (2% + 18% GST Razorpay rate)</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-zinc-900 to-emerald-950/30 border border-emerald-900/40">
+                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">Estimated Net In Bank</span>
+                <span className="text-2xl font-black text-emerald-400 mt-1 block">
+                  {currencySymbol}{totalNetBankPayout.toLocaleString()}
+                </span>
+                <span className="text-[11px] text-zinc-400 mt-0.5 block">Actual money deposited into your account</span>
+              </div>
+            </div>
+
+            {/* Order Search Bar */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                placeholder="Search orders by customer name, email, order ID, promo code, or token..."
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
             </div>
 
             {orders.length === 0 ? (
               <div className="p-12 text-center rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-500">
                 <ShoppingBag className="w-10 h-10 mx-auto mb-2 text-zinc-600" />
-                <h4 className="font-bold text-sm text-zinc-300">No orders yet</h4>
+                <h4 className="font-bold text-sm text-zinc-300">No orders logged yet</h4>
                 <p className="text-xs text-zinc-500 mt-1">
-                  Test the checkout flow on the storefront to see order logging in real-time.
+                  Complete a checkout on your storefront to see order tracking and link generation live.
                 </p>
               </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs">
+                No orders match your search query &ldquo;{orderSearch}&rdquo;.
+              </div>
             ) : (
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden">
-                <table className="w-full text-left text-xs">
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-zinc-800/60 text-zinc-400 uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="p-4">Order ID</th>
                       <th className="p-4">Customer</th>
-                      <th className="p-4">Items</th>
-                      <th className="p-4">Total</th>
+                      <th className="p-4">Product</th>
+                      <th className="p-4">Gross Total</th>
+                      <th className="p-4">Est. Net</th>
                       <th className="p-4">Date</th>
-                      <th className="p-4">License Token</th>
+                      <th className="p-4 text-right">Customer Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
-                    {orders.map((o) => (
-                      <tr key={o.id} className="hover:bg-zinc-800/40">
-                        <td className="p-4 font-mono font-bold text-indigo-400">{o.id}</td>
-                        <td className="p-4">
-                          <div className="font-bold text-white">{o.customerName}</div>
-                          <div className="text-zinc-500">{o.customerEmail}</div>
-                        </td>
-                        <td className="p-4">
-                          {o.items.map((i, idx) => (
-                            <div key={idx} className="text-zinc-300 truncate max-w-xs">
-                              {i.quantity}x {i.product.title}
+                    {filteredOrders.map((o) => {
+                      const net = Math.max(0, Math.round((o.total * 0.9764) * 100) / 100);
+                      const isCopied = copiedLink === o.id;
+
+                      return (
+                        <tr key={o.id} className="hover:bg-zinc-800/40">
+                          <td className="p-4 font-mono font-bold text-indigo-400">
+                            <div>{o.id}</div>
+                            {o.promoCode && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                {o.promoCode}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <div className="font-bold text-white">{o.customerName}</div>
+                            <div className="text-zinc-500 font-mono text-[11px]">{o.customerEmail}</div>
+                          </td>
+                          <td className="p-4">
+                            {o.items.map((i, idx) => (
+                              <div key={idx} className="text-zinc-300 truncate max-w-xs font-medium">
+                                {i.quantity}x {i.product.title}
+                              </div>
+                            ))}
+                          </td>
+                          <td className="p-4 font-bold text-white text-sm">
+                            {o.currency === 'INR' ? '₹' : '$'}{o.total.toFixed(2)}
+                          </td>
+                          <td className="p-4 font-bold text-emerald-400 text-sm">
+                            {o.currency === 'INR' ? '₹' : '$'}{net.toFixed(2)}
+                          </td>
+                          <td className="p-4 text-zinc-400 text-[11px]">{o.createdAt}</td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* 1-Click Copy Customer Link */}
+                              <button
+                                type="button"
+                                onClick={() => handleCopyCustomerDownload(o)}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                  isCopied
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
+                                }`}
+                                title="Copy direct download link for this customer"
+                              >
+                                {isCopied ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                                    <span>Copy Link</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* 1-Click Email Receipt */}
+                              <button
+                                type="button"
+                                onClick={() => handleEmailCustomerReceipt(o)}
+                                className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-700/50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                                title="Open pre-filled email receipt in Outlook/Gmail"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>Email Receipt</span>
+                              </button>
                             </div>
-                          ))}
-                        </td>
-                        <td className="p-4 font-bold text-emerald-400 text-sm">
-                          ${o.total.toFixed(2)}
-                        </td>
-                        <td className="p-4 text-zinc-400">{o.createdAt}</td>
-                        <td className="p-4 font-mono text-[11px] text-zinc-400">{o.downloadToken}</td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB: PROMOS & CAMPAIGNS */}
+        {activeTab === 'promos' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Tag className="w-5 h-5 text-indigo-400" />
+                <span>Promo Codes & Seasonal Drops</span>
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Create influencer coupons, seasonal flash discounts, and track revenue per promo code.
+              </p>
+            </div>
+
+            {/* Quick Announcement Bar Editor */}
+            <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
+              <h3 className="text-sm font-bold text-white mb-2">Storefront Announcement Banner</h3>
+              <form onSubmit={handleSaveQuickAnnouncement} className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={quickAnnouncement}
+                  onChange={(e) => setQuickAnnouncement(e.target.value)}
+                  placeholder="e.g. Launch Special: Use code LAUNCH30 for 30% OFF everything!"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Update Announcement</span>
+                </button>
+              </form>
+              {announcementSaved && (
+                <p className="text-xs text-emerald-400 font-medium mt-2">✓ Top banner updated on live store!</p>
+              )}
+            </div>
+
+            {/* Create New Promo Code Form */}
+            <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
+              <h3 className="text-sm font-bold text-white mb-3">Create New Campaign Code</h3>
+              <form onSubmit={handleCreatePromo} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-zinc-400 block mb-1">Coupon Code</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. YOUTUBE25"
+                    value={newPromoCode}
+                    onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-xs font-mono uppercase text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-zinc-400 block mb-1">Discount Rate (%)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="5"
+                      max="90"
+                      step="5"
+                      required
+                      value={newPromoDiscount}
+                      onChange={(e) => setNewPromoDiscount(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-xs font-bold text-zinc-400">%</span>
+                  </div>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Promo Code</span>
+                  </button>
+                </div>
+              </form>
+
+              {promoFeedback && (
+                <p className={`text-xs mt-3 font-medium ${promoFeedback.error ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {promoFeedback.message}
+                </p>
+              )}
+            </div>
+
+            {/* Promo Codes Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {promos.map((p) => (
+                <div key={p.code} className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono font-bold text-sm text-indigo-400 bg-indigo-950/60 px-2.5 py-0.5 rounded-lg border border-indigo-800/60">
+                        {p.code}
+                      </span>
+                      <span className="text-xs font-black text-emerald-400">
+                        {(p.discount * 100).toFixed(0)}% OFF
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-1 text-xs text-zinc-400">
+                      <div className="flex justify-between">
+                        <span>Orders Used:</span>
+                        <strong className="text-white">{p.usageCount}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Revenue Driven:</span>
+                        <strong className="text-emerald-400">${p.revenue.toFixed(2)}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => togglePromoCode(p.code)}
+                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
+                        p.active
+                          ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                          : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                      }`}
+                    >
+                      {p.active ? '● Active' : '○ Paused'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => deletePromoCode(p.code)}
+                      className="p-1 rounded text-zinc-500 hover:text-rose-400 transition-colors"
+                      title="Delete promo code"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

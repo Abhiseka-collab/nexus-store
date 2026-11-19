@@ -37,7 +37,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { recordOrder, settings, currency, currencySymbol } = useStore();
+  const { recordOrder, settings, currency, currencySymbol, promos } = useStore();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -115,6 +115,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const applyPromo = (code: string) => {
     const formatted = code.trim().toUpperCase();
+
+    // Check dynamic promos list first
+    if (promos && promos.length > 0) {
+      const match = promos.find((p) => p.active && p.code.toUpperCase() === formatted);
+      if (match) {
+        setAppliedPromo(match.code);
+        setDiscountRate(match.discount);
+        return { success: true, message: `Promo code applied! Enjoy ${(match.discount * 100).toFixed(0)}% off!` };
+      }
+    }
 
     // Check dynamic settings first
     if (settings.promoCode && formatted === settings.promoCode.toUpperCase()) {

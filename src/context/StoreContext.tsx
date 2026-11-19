@@ -42,10 +42,26 @@ export interface ProductPriceInfo {
   discountPercent?: number;
 }
 
+export interface PromoCodeItem {
+  code: string;
+  discount: number; // e.g. 0.30 for 30%
+  active: boolean;
+  usageCount: number;
+  revenue: number;
+}
+
+const DEFAULT_PROMOS: PromoCodeItem[] = [
+  { code: 'LAUNCH30', discount: 0.30, active: true, usageCount: 0, revenue: 0 },
+  { code: 'CREATOR10', discount: 0.10, active: true, usageCount: 0, revenue: 0 },
+  { code: 'SOLO20', discount: 0.20, active: true, usageCount: 0, revenue: 0 },
+  { code: 'VIP50', discount: 0.50, active: true, usageCount: 0, revenue: 0 },
+];
+
 interface StoreContextType {
   products: Product[];
   settings: StoreSettings;
   orders: Order[];
+  promos: PromoCodeItem[];
   logs: SystemLog[];
   trafficEvents: TrafficEvent[];
   currency: SupportedCurrency;
@@ -55,6 +71,9 @@ interface StoreContextType {
   setCurrency: (currency: SupportedCurrency) => void;
   formatPrice: (amountUsd: number, amountInr?: number) => string;
   getProductPrice: (product: Product) => ProductPriceInfo;
+  addPromoCode: (code: string, discount: number) => boolean;
+  deletePromoCode: (code: string) => void;
+  togglePromoCode: (code: string) => void;
   addProduct: (product: Omit<Product, 'id'>) => Product;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -81,6 +100,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [currency, setCurrencyState] = useState<SupportedCurrency>('USD');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [promos, setPromos] = useState<PromoCodeItem[]>(DEFAULT_PROMOS);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [trafficEvents, setTrafficEvents] = useState<TrafficEvent[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
@@ -208,6 +228,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsAdminAuthenticated(true);
       }
 
+      const storedPromos = localStorage.getItem('nexus_promos');
+      if (storedPromos) {
+        try {
+          const parsed = JSON.parse(storedPromos);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPromos(parsed);
+          }
+        } catch {}
+      }
+
       const storedCurrency = localStorage.getItem('nexus_currency') as SupportedCurrency | null;
       if (storedCurrency === 'USD' || storedCurrency === 'INR') {
         setCurrencyState(storedCurrency);
@@ -257,6 +287,37 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!isLoaded) return;
     safeSetItem('nexus_logs', JSON.stringify(logs));
   }, [logs, isLoaded]);
+
+  // Sync promos
+  useEffect(() => {
+    if (!isLoaded) return;
+    safeSetItem('nexus_promos', JSON.stringify(promos));
+  }, [promos, isLoaded]);
+
+  const addPromoCode = useCallback((code: string, discount: number): boolean => {
+    const cleanCode = sanitizeText(code.toUpperCase().trim(), 20);
+    if (!cleanCode) return false;
+    const cleanDiscount = normalizeDiscount(discount);
+    if (cleanDiscount <= 0) return false;
+
+    setPromos((prev) => {
+      if (prev.some((p) => p.code === cleanCode)) {
+        return prev.map((p) => (p.code === cleanCode ? { ...p, discount: cleanDiscount, active: true } : p));
+      }
+      return [{ code: cleanCode, discount: cleanDiscount, active: true, usageCount: 0, revenue: 0 }, ...prev];
+    });
+    return true;
+  }, []);
+
+  const deletePromoCode = useCallback((code: string) => {
+    setPromos((prev) => prev.filter((p) => p.code !== code));
+  }, []);
+
+  const togglePromoCode = useCallback((code: string) => {
+    setPromos((prev) =>
+      prev.map((p) => (p.code === code ? { ...p, active: !p.active } : p))
+    );
+  }, []);
 
   const setCurrency = useCallback((newCurrency: SupportedCurrency) => {
     setCurrencyState(newCurrency);
@@ -424,7 +485,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const recordOrder = (order: Order) => {
     setOrders((prev) => [order, ...prev.slice(0, 99)]);
-    addLog('success', `Order #${order.id} received: $${order.total} from ${order.customerEmail}`);
+    if (order.promoCode) {
+      setPromos((prev) =>
+        prev.map((p) => {
+          if (p.code.toUpperCase() === order.promoCode?.toUpperCase()) {
+            return {
+              ...p,
+              usageCount: p.usageCount + 1,
+              revenue: Math.round((p.revenue + order.total) * 100) / 100,
+            };
+          }
+          return p;
+        })
+      );
+    }
+    addLog('success', `Order #${order.id} received: ${order.currency === 'INR' ? '₹' : '$'}${order.total} from ${order.customerEmail}`);
   };
 
   // Secure login with SHA-256 hash check and rate limiting
@@ -657,6 +732,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         products,
         settings,
         orders,
+        promos,
         logs,
         trafficEvents,
         currency,
@@ -666,6 +742,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrency,
         formatPrice,
         getProductPrice,
+        addPromoCode,
+        deletePromoCode,
+        togglePromoCode,
         addProduct,
         updateProduct,
         deleteProduct,
