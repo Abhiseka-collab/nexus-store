@@ -213,6 +213,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setAdminPasswordHash(storedHash);
       }
 
+      // Persisted brute-force lockout recovery
+      const storedLockout = localStorage.getItem('nexus_admin_lockout');
+      if (storedLockout) {
+        const lockTime = parseInt(storedLockout, 10);
+        if (lockTime > Date.now()) {
+          setLockoutUntil(lockTime);
+          setLockoutRemainingSeconds(Math.ceil((lockTime - Date.now()) / 1000));
+        } else {
+          localStorage.removeItem('nexus_admin_lockout');
+          localStorage.removeItem('nexus_admin_fails');
+        }
+      }
+      const storedFails = localStorage.getItem('nexus_admin_fails');
+      if (storedFails) {
+        setFailedAttempts(parseInt(storedFails, 10) || 0);
+      }
+
       const storedTraffic = localStorage.getItem('nexus_traffic');
       if (storedTraffic) {
         const parsed = JSON.parse(storedTraffic);
@@ -517,17 +534,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsAdminAuthenticated(true);
       sessionStorage.setItem('nexus_admin_auth', 'true');
       setFailedAttempts(0);
+      try {
+        localStorage.removeItem('nexus_admin_fails');
+        localStorage.removeItem('nexus_admin_lockout');
+      } catch {}
       addLog('info', 'Admin authenticated via hashed verification.');
       return { success: true };
     }
 
     const newFails = failedAttempts + 1;
     setFailedAttempts(newFails);
+    safeSetItem('nexus_admin_fails', String(newFails));
 
     if (newFails >= MAX_FAILED_ATTEMPTS) {
       const lockTime = Date.now() + LOCKOUT_DURATION_MS;
       setLockoutUntil(lockTime);
       setLockoutRemainingSeconds(60);
+      safeSetItem('nexus_admin_lockout', String(lockTime));
       addLog('error', `Security Alert: Admin login locked out after ${MAX_FAILED_ATTEMPTS} failed attempts.`);
       return { success: false, message: 'Too many failed attempts. Locked out for 60 seconds.' };
     }

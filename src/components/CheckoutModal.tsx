@@ -68,7 +68,7 @@ export const CheckoutModal: React.FC = () => {
 
     try {
       localStorage.setItem('nexus_customer_email', cleanEmail);
-      if (name) localStorage.setItem('nexus_customer_name', name);
+      if (cleanName) localStorage.setItem('nexus_customer_name', cleanName);
     } catch {}
 
     await handlePaymentFlow(cleanName, cleanEmail);
