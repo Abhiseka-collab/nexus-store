@@ -104,6 +104,23 @@ export default function AdminPage() {
   // Search filter for products
   const [productSearch, setProductSearch] = useState('');
 
+  // Auto-login if auth parameter is present in URL (e.g. from desktop launcher)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && !isAdminAuthenticated && lockoutRemainingSeconds === 0) {
+      const params = new URLSearchParams(window.location.search);
+      const authKey = params.get('auth');
+      if (authKey) {
+        loginAdmin(authKey).then((res) => {
+          if (res.success) {
+            // Clean URL query string so password is not stored in browser history
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
+        });
+      }
+    }
+  }, [isAdminAuthenticated, lockoutRemainingSeconds, loginAdmin]);
+
   // Handle Login with rate limiting & hashing
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
