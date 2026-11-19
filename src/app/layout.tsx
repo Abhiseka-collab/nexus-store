@@ -13,7 +13,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nexus-store-5s8orsfkz-abhi-4d1e.vercel.app";
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  return "https://nexus-store.vercel.app";
+};
+
+const siteUrl = getBaseUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -44,12 +50,21 @@ export const metadata: Metadata = {
     description:
       "Complete life operating system for high performers. 100% offline, automated streak engine, and instant Excel download.",
     siteName: "NEXUS Digital Store",
+    images: [
+      {
+        url: "/personal-growth-system-cover.svg",
+        width: 1200,
+        height: 675,
+        alt: "Personal Growth System (16-in-1 Master OS)",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "NEXUS | 16-in-1 Personal Growth System (.xlsx)",
     description:
       "Track habits, goals, projects, and deep work in one unified Excel & Google Sheets operating system.",
+    images: ["/personal-growth-system-cover.svg"],
   },
   robots: {
     index: true,

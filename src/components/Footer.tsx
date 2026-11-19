@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Zap, ShieldCheck, Heart, Send } from 'lucide-react';
+import Link from 'next/link';
+import { Zap, ShieldCheck, Heart, Send, Lock } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -31,38 +32,54 @@ export const Footer: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              Curated, production-grade digital assets, boilerplates, and design systems built for high-output builders.
+              Curated, production-grade digital assets, habit operating systems, and spreadsheet engines built for high-output builders.
             </p>
             <div className="flex items-center gap-2 text-zinc-500">
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>Verified 256-Bit SSL Store</span>
+              <span>Razorpay Certified 256-Bit SSL Store</span>
             </div>
           </div>
 
           {/* Catalog Links */}
           <div>
             <h4 className="font-bold text-zinc-900 dark:text-white uppercase tracking-wider text-[11px] mb-3">
-              Categories
+              Explore Catalog
             </h4>
             <ul className="space-y-2">
-              <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-indigo-600 dark:text-indigo-400">Spreadsheets & Systems</a></li>
-              <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400">Notion Templates</a></li>
-              <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400">Design Systems & 3D</a></li>
-              <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400">Solo Founder Playbooks</a></li>
-              <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400">Developer Starter Kits</a></li>
+              <li><a href="/#products" className="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-indigo-600 dark:text-indigo-400">16-in-1 Personal Growth System</a></li>
+              <li><a href="/#spreadsheet-tour" className="hover:text-indigo-600 dark:hover:text-indigo-400">Interactive Spreadsheet Tour</a></li>
+              <li><a href="/#unboxing" className="hover:text-indigo-600 dark:hover:text-indigo-400">What&apos;s In The Download Box</a></li>
+              <li><a href="/#roi-calculator" className="hover:text-indigo-600 dark:hover:text-indigo-400">Time & Money ROI Calculator</a></li>
+              <li><a href="/#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400">Productivity System FAQ</a></li>
             </ul>
           </div>
 
-          {/* Legal / Trust Links */}
+          {/* Legal / Trust Policy Links (Required by Razorpay) */}
           <div>
             <h4 className="font-bold text-zinc-900 dark:text-white uppercase tracking-wider text-[11px] mb-3">
-              Guarantees & Policy
+              Legal & Support
             </h4>
             <ul className="space-y-2">
-              <li><a href="#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400">Commercial License Terms</a></li>
-              <li><a href="#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400">30-Day Money Back Policy</a></li>
-              <li><a href="#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400">Instant Digital Delivery FAQ</a></li>
-              <li><a href="mailto:solution00000@outlook.com" className="hover:text-indigo-600 dark:hover:text-indigo-400">Support Desk</a></li>
+              <li>
+                <Link href="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  Terms of Service & License
+                </Link>
+              </li>
+              <li>
+                <Link href="/refund" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  Cancellation & Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium text-indigo-600 dark:text-indigo-400">
+                  Contact Us & Support Desk
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -103,8 +120,17 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Sub-footer */}
         <div className="mt-12 pt-8 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-zinc-400">
-          <div>
-            © 2026 NEXUS DIGITAL. All rights reserved.
+          <div className="flex items-center gap-2">
+            <span>© 2026 NEXUS DIGITAL. All rights reserved.</span>
+            {/* Discrete Admin Link */}
+            <Link
+              href="/admin"
+              className="text-zinc-300 dark:text-zinc-700 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors"
+              title="Store Owner Portal"
+              aria-label="Admin"
+            >
+              <Lock className="w-2.5 h-2.5" />
+            </Link>
           </div>
 
           <div className="flex items-center gap-1">

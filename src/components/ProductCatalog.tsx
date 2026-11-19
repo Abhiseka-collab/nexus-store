@@ -18,7 +18,7 @@ export const ProductCatalog: React.FC = () => {
   const { products } = useStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('All Products');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
+  const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'newest'>('featured');
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -36,8 +36,7 @@ export const ProductCatalog: React.FC = () => {
     }).sort((a, b) => {
       if (sortBy === 'price-asc') return a.price - b.price;
       if (sortBy === 'price-desc') return b.price - a.price;
-      if (sortBy === 'rating') return b.rating - a.rating;
-      return 0; // Default featured order
+      return 0; // Default featured & newest
     });
   }, [selectedCategory, searchQuery, sortBy]);
 
@@ -69,7 +68,7 @@ export const ProductCatalog: React.FC = () => {
               className="bg-transparent font-medium text-zinc-900 dark:text-white focus:outline-none cursor-pointer"
             >
               <option value="featured">Featured First</option>
-              <option value="rating">Highest Rated</option>
+              <option value="newest">Newest Releases</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
             </select>

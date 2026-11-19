@@ -17,9 +17,9 @@ export const PRODUCTS: Product[] = [
     rating: 5.0,
     reviewCount: 0,
     downloadsCount: 0,
-    thumbnail: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1200&q=80',
+    thumbnail: '/personal-growth-system-cover.svg',
     gallery: [
-      'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1200&q=80',
+      '/personal-growth-system-cover.svg',
       'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80'
     ],

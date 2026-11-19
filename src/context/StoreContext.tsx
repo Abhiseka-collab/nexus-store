@@ -165,6 +165,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   originalPrice: PRODUCTS[0].originalPrice,
                   priceInr: PRODUCTS[0].priceInr,
                   originalPriceInr: PRODUCTS[0].originalPriceInr,
+                  thumbnail: PRODUCTS[0].thumbnail,
+                  gallery: PRODUCTS[0].gallery,
                 };
               }
               return p;

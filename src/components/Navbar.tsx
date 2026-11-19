@@ -114,16 +114,6 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            {/* Admin Portal Link */}
-            <Link
-              href="/admin"
-              className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 transition-all"
-              title="Admin Portal (Owner Access)"
-            >
-              <Lock className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="font-semibold hidden sm:inline">Admin</span>
-            </Link>
-
             <div className="hidden lg:flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
               <span>Instant Download</span>
