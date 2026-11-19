@@ -2,7 +2,9 @@ import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
   const getBaseUrl = () => {
-    return process.env.NEXT_PUBLIC_SITE_URL || 'https://nexus-store.vercel.app';
+    if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    return 'https://nexus-store-woad.vercel.app';
   };
 
   const siteUrl = getBaseUrl();
