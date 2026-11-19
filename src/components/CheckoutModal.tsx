@@ -56,7 +56,7 @@ export const CheckoutModal: React.FC = () => {
       const res = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total, currency: 'USD' }),
+        body: JSON.stringify({ amount: total, currency: 'INR' }),
       });
       const orderData = await res.json();
 
