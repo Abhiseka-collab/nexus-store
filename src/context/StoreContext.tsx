@@ -15,12 +15,12 @@ import {
 } from '@/utils/security';
 
 const DEFAULT_SETTINGS: StoreSettings = {
-  storeName: 'NEXUS DIGITAL',
+  storeName: 'NEXUS',
   storeTagline: 'Curated digital assets for creators & founders',
   announcementText: 'Launch Special: Use code LAUNCH30 for 30% OFF everything!',
   promoCode: 'LAUNCH30',
   promoDiscount: 0.30,
-  supportEmail: 'support@nexus-digital.io',
+  supportEmail: 'solution00000@outlook.com',
   currency: 'USD',
   currencySymbol: '$',
 };

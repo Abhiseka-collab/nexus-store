@@ -27,7 +27,7 @@ export const Footer: React.FC = () => {
                 <Zap className="w-4 h-4 fill-current" />
               </div>
               <span className="text-base font-bold text-zinc-900 dark:text-white">
-                NEXUS DIGITAL
+                NEXUS
               </span>
             </div>
             <p className="text-xs text-zinc-500 leading-relaxed">
@@ -61,7 +61,7 @@ export const Footer: React.FC = () => {
               <li><a href="#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400">Commercial License Terms</a></li>
               <li><a href="#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400">30-Day Money Back Policy</a></li>
               <li><a href="#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400">Instant Digital Delivery FAQ</a></li>
-              <li><a href="mailto:support@nexus-digital.io" className="hover:text-indigo-600 dark:hover:text-indigo-400">Support Desk</a></li>
+              <li><a href="mailto:solution00000@outlook.com" className="hover:text-indigo-600 dark:hover:text-indigo-400">Support Desk</a></li>
             </ul>
           </div>
 

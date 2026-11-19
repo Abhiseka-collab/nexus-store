@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NEXUS Digital | Premium Templates, Boilerplates & Digital Assets",
+  title: "NEXUS | Premium Templates, Boilerplates & Digital Assets",
   description: "Curated, production-grade Notion workspaces, Figma design systems, solo-founder playbooks, and Next.js starter boilerplates with instant file delivery.",
 };
 

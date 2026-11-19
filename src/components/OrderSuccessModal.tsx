@@ -168,7 +168,7 @@ Support: support@nexus-digital.io
         {/* Footer */}
         <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-xs text-zinc-500">
-            Questions? Contact <a href="mailto:support@nexus-digital.io" className="text-indigo-600 font-medium">support@nexus-digital.io</a>
+            Questions? Contact <a href="mailto:solution00000@outlook.com" className="text-indigo-600 font-medium">solution00000@outlook.com</a>
           </span>
           <button
             onClick={closeSuccess}
