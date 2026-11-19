@@ -135,16 +135,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const parsed = JSON.parse(storedProducts);
         if (Array.isArray(parsed)) {
           const validated = parsed.map(validateProductSchema).filter(Boolean) as Product[];
-          // Filter out legacy demo placeholder items
-          const userProducts = validated.filter(
-            (p) =>
-              p.id !== 'prod-notion-second-brain' &&
-              p.id !== 'prod-saas-design-system' &&
-              p.id !== 'prod-solo-founder-playbook' &&
-              p.id !== 'prod-saas-starter-kit' &&
-              p.id !== 'prod-minimal-lightroom-presets' &&
-              p.id !== 'prod-3d-holographic-icons'
-          );
+          // Filter legacy demo placeholder items and sync official flagship pricing
+          const userProducts = validated
+            .map((p) => {
+              if (p.id === 'prod-personal-growth-system') {
+                return {
+                  ...p,
+                  price: PRODUCTS[0].price,
+                  originalPrice: PRODUCTS[0].originalPrice,
+                  priceInr: PRODUCTS[0].priceInr,
+                  originalPriceInr: PRODUCTS[0].originalPriceInr,
+                };
+              }
+              return p;
+            })
+            .filter(
+              (p) =>
+                p.id !== 'prod-notion-second-brain' &&
+                p.id !== 'prod-saas-design-system' &&
+                p.id !== 'prod-solo-founder-playbook' &&
+                p.id !== 'prod-saas-starter-kit' &&
+                p.id !== 'prod-minimal-lightroom-presets' &&
+                p.id !== 'prod-3d-holographic-icons'
+            );
           if (userProducts.length > 0) {
             setProducts(userProducts);
             safeSetItem('nexus_products', JSON.stringify(userProducts));
