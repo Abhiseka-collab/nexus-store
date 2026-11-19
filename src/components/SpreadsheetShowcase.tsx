@@ -657,7 +657,7 @@ export const SpreadsheetShowcase: React.FC = () => {
                 {priceInfo && (
                   <div className="text-right hidden sm:block">
                     <span className="text-[10px] text-zinc-400 block font-mono">16-Tab Lifetime License</span>
-                    <span className="text-sm font-extrabold text-white">
+                    <span className="text-sm font-extrabold text-white" suppressHydrationWarning>
                       {priceInfo.formattedPrice}
                     </span>
                   </div>

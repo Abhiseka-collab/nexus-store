@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, X, Zap, ShieldCheck } from 'lucide-react';
+import { X, Zap } from 'lucide-react';
 
 interface ActivityItem {
   location: string;
@@ -38,12 +38,17 @@ const ACTIVITIES: ActivityItem[] = [
 ];
 
 export const ActivityToast: React.FC = () => {
+  const [mounted, setMounted] = useState(false);
   const [index, setIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (dismissed) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || dismissed) return;
 
     // Show initial toast after 3 seconds
     const initialTimer = setTimeout(() => {
@@ -63,9 +68,9 @@ export const ActivityToast: React.FC = () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, [dismissed]);
+  }, [mounted, dismissed]);
 
-  if (dismissed) return null;
+  if (!mounted || dismissed) return null;
 
   const current = ACTIVITIES[index];
 
@@ -74,6 +79,7 @@ export const ActivityToast: React.FC = () => {
       className={`fixed bottom-5 left-5 z-40 transition-all duration-500 transform ${
         isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
       }`}
+      suppressHydrationWarning
     >
       <div className="flex items-center gap-3 p-3.5 pr-4 rounded-2xl bg-zinc-900/90 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 shadow-2xl max-w-sm text-left">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">

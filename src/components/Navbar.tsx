@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Sparkles, ShieldCheck, Zap, Lock, Sun, Moon } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
@@ -11,6 +11,11 @@ export const Navbar: React.FC = () => {
   const { itemCount, toggleCart } = useCart();
   const { settings, currency, setCurrency } = useStore();
   const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
@@ -59,7 +64,7 @@ export const Navbar: React.FC = () => {
           {/* Action Area */}
           <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Currency Switcher */}
-            <div className="flex items-center p-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
+            <div className="flex items-center p-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold" suppressHydrationWarning>
               <button
                 type="button"
                 onClick={() => setCurrency('USD')}
@@ -69,6 +74,7 @@ export const Navbar: React.FC = () => {
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
                 }`}
                 title="Switch to US Dollar ($)"
+                suppressHydrationWarning
               >
                 <span>🇺🇸</span>
                 <span className="font-mono text-[11px]">$</span>
@@ -82,6 +88,7 @@ export const Navbar: React.FC = () => {
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
                 }`}
                 title="Switch to Indian Rupee (₹ UPI)"
+                suppressHydrationWarning
               >
                 <span>🇮🇳</span>
                 <span className="font-mono text-[11px]">₹</span>
@@ -95,11 +102,12 @@ export const Navbar: React.FC = () => {
               className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer shadow-xs active:scale-95"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label="Toggle Theme"
+              suppressHydrationWarning
             >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
+              {mounted && theme === 'light' ? (
                 <Moon className="w-4 h-4 text-indigo-600" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-400" />
               )}
             </button>
 

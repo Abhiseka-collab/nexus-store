@@ -1,13 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Clock, TrendingUp, Sparkles, ArrowRight, CheckCircle2, ShieldCheck, DollarSign } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock, TrendingUp, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { useCart } from '@/context/CartContext';
 
 export const RoiCalculator: React.FC = () => {
   const { currency, products, getProductPrice } = useStore();
   const { addToCart, openCheckout } = useCart();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [weeklyHours, setWeeklyHours] = useState(5);
   const [monthlySaaSUsd, setMonthlySaaSUsd] = useState(25);
@@ -73,7 +78,7 @@ export const RoiCalculator: React.FC = () => {
                   <Clock className="w-4 h-4 text-indigo-400" />
                   <span>Weekly hours lost to planning & tool-switching:</span>
                 </label>
-                <span className="text-lg font-black font-mono text-indigo-400 px-3 py-1 rounded-xl bg-indigo-950/80 border border-indigo-800/60">
+                <span className="text-lg font-black font-mono text-indigo-400 px-3 py-1 rounded-xl bg-indigo-950/80 border border-indigo-800/60" suppressHydrationWarning>
                   {weeklyHours} hrs/wk
                 </span>
               </div>
@@ -100,7 +105,7 @@ export const RoiCalculator: React.FC = () => {
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
                   <span>Monthly spend on productivity apps (Notion, Todoist, etc.):</span>
                 </label>
-                <span className="text-lg font-black font-mono text-emerald-400 px-3 py-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60">
+                <span className="text-lg font-black font-mono text-emerald-400 px-3 py-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60" suppressHydrationWarning>
                   {currency === 'INR' ? `₹${monthlySaaSInr}/mo` : `$${monthlySaaSUsd}/mo`}
                 </span>
               </div>
@@ -127,7 +132,7 @@ export const RoiCalculator: React.FC = () => {
                 />
               )}
 
-              <div className="flex justify-between text-[11px] text-zinc-500 font-mono mt-2">
+              <div className="flex justify-between text-[11px] text-zinc-500 font-mono mt-2" suppressHydrationWarning>
                 <span>{currency === 'INR' ? '₹0/mo' : '$0/mo'}</span>
                 <span>{currency === 'INR' ? '₹2,000/mo' : '$25/mo'}</span>
                 <span>{currency === 'INR' ? '₹6,000+/mo' : '$80+/mo'}</span>
@@ -165,10 +170,10 @@ export const RoiCalculator: React.FC = () => {
               <div className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800">
                 <span className="text-xs text-zinc-400 block font-medium">Reclaimed Deep Work Time</span>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-black text-white">{annualHoursSaved}</span>
+                  <span className="text-3xl sm:text-4xl font-black text-white" suppressHydrationWarning>{annualHoursSaved}</span>
                   <span className="text-sm font-semibold text-emerald-400">Hours / Year</span>
                 </div>
-                <span className="text-[11px] text-zinc-500 mt-1 block">
+                <span className="text-[11px] text-zinc-500 mt-1 block" suppressHydrationWarning>
                   Equivalent to ~{Math.round(annualHoursSaved / 8)} full 8-hour workdays reclaimed
                 </span>
               </div>
@@ -177,10 +182,10 @@ export const RoiCalculator: React.FC = () => {
               <div className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800">
                 <span className="text-xs text-zinc-400 block font-medium">Recurring SaaS Fees Saved</span>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-black text-emerald-400">{formattedAnnualCost}</span>
+                  <span className="text-3xl sm:text-4xl font-black text-emerald-400" suppressHydrationWarning>{formattedAnnualCost}</span>
                   <span className="text-sm font-semibold text-zinc-400">/ Year</span>
                 </div>
-                <span className="text-[11px] text-zinc-500 mt-1 block">
+                <span className="text-[11px] text-zinc-500 mt-1 block" suppressHydrationWarning>
                   5-year recurring cost avoided: <strong className="text-zinc-300">{formattedFiveYearCost}</strong>
                 </span>
               </div>
@@ -188,7 +193,7 @@ export const RoiCalculator: React.FC = () => {
               {/* Stat 3: One-time investment */}
               <div className="pt-2 flex items-center justify-between text-xs text-zinc-300">
                 <span>One-Time System Investment:</span>
-                <span className="font-mono font-bold text-base text-white">
+                <span className="font-mono font-bold text-base text-white" suppressHydrationWarning>
                   {priceInfo?.formattedPrice || (currency === 'INR' ? '₹489' : '$13.30')}
                 </span>
               </div>
