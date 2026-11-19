@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Star, ShoppingBag, Eye, Check, FileText } from 'lucide-react';
+import { Star, ShoppingBag, Eye, Check, FileSpreadsheet, Zap } from 'lucide-react';
 import { Product } from '@/types/product';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreContext';
@@ -26,16 +26,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const badgeColor = {
-    Bestseller: 'bg-amber-500 text-white shadow-amber-500/20',
-    Hot: 'bg-rose-500 text-white shadow-rose-500/20',
-    New: 'bg-emerald-500 text-white shadow-emerald-500/20',
-    Popular: 'bg-indigo-600 text-white shadow-indigo-600/20',
+    Bestseller: 'bg-amber-500 text-white shadow-amber-500/25',
+    Hot: 'bg-rose-500 text-white shadow-rose-500/25',
+    New: 'bg-emerald-500 text-white shadow-emerald-500/25',
+    Popular: 'bg-indigo-600 text-white shadow-indigo-600/25',
   }[product.badge || 'Popular'];
 
   return (
     <div
       onClick={() => setViewingProduct(product)}
-      className="group relative flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:shadow-xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-300 overflow-hidden cursor-pointer"
+      className="group relative flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800/90 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-500/60 transition-all duration-300 hover:-translate-y-1.5 overflow-hidden cursor-pointer"
     >
       {/* Thumbnail Container */}
       <div className="relative aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
@@ -45,6 +45,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
         />
 
+        {/* Ambient Gradient on Thumbnail */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
         {/* Top Badges */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
           {product.badge && (
@@ -53,22 +56,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </span>
           )}
           {priceInfo.discountPercent && (
-            <span className="text-[11px] font-bold px-2 py-1 rounded-full bg-zinc-900/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30">
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-zinc-950/85 backdrop-blur-md text-emerald-400 border border-emerald-500/30 shadow-md">
               Save {priceInfo.discountPercent}%
             </span>
           )}
         </div>
 
         {/* Quick View Overlay Button */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
           <button
             onClick={(e) => {
               e.stopPropagation();
               setViewingProduct(product);
             }}
-            className="flex items-center gap-2 bg-white/95 hover:bg-white text-zinc-900 px-4 py-2 rounded-xl text-xs font-semibold shadow-lg backdrop-blur-sm transition-transform active:scale-95"
+            className="flex items-center gap-2 bg-white/95 hover:bg-white text-zinc-900 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xl backdrop-blur-sm transition-transform active:scale-95"
           >
-            <Eye className="w-3.5 h-3.5 text-indigo-600" />
+            <Eye className="w-4 h-4 text-indigo-600" />
             <span>Quick Preview</span>
           </button>
         </div>
@@ -79,7 +82,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div>
           {/* Category & Status */}
           <div className="flex items-center justify-between text-xs mb-2">
-            <span className="font-semibold text-indigo-600 dark:text-indigo-400 tracking-wide uppercase text-[11px]">
+            <span className="font-bold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase text-[11px]">
               {product.category}
             </span>
             {product.reviewCount > 0 ? (
@@ -89,8 +92,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 <span className="text-zinc-400">({product.reviewCount})</span>
               </div>
             ) : (
-              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/40">
-                Verified Template
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/50">
+                Verified Asset
               </span>
             )}
           </div>
@@ -106,38 +109,54 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </p>
 
           {/* File Spec pill */}
-          <div className="mt-3 flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/60 px-2.5 py-1.5 rounded-lg border border-zinc-200/50 dark:border-zinc-800">
-            <FileText className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-            <span className="truncate">{product.fileFormat}</span>
+          <div className="mt-3.5 flex items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/60 px-3 py-1.5 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="truncate font-medium">{product.fileFormat}</span>
             <span className="text-zinc-300 dark:text-zinc-700">•</span>
-            <span className="shrink-0">{product.fileSize}</span>
+            <span className="shrink-0 font-medium">{product.fileSize}</span>
+            <span className="text-zinc-300 dark:text-zinc-700">•</span>
+            <span className="shrink-0 text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+              <Zap className="w-3 h-3 fill-emerald-500" />
+              Instant
+            </span>
+          </div>
+
+          {/* Promo Callout */}
+          <div className="mt-2 text-[11px] text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-1.5">
+            <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/60 dark:border-indigo-800/60 font-mono font-bold text-[10px]">
+              LAUNCH30
+            </span>
+            <span>takes extra 30% off</span>
           </div>
         </div>
 
         {/* Price & Action Row */}
         <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black text-zinc-900 dark:text-white">
-              {priceInfo.formattedPrice}
-            </span>
-            {priceInfo.formattedOriginalPrice && (
-              <span className="text-xs text-zinc-400 line-through">
-                {priceInfo.formattedOriginalPrice}
+          <div className="flex flex-col">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black text-zinc-900 dark:text-white">
+                {priceInfo.formattedPrice}
               </span>
-            )}
+              {priceInfo.formattedOriginalPrice && (
+                <span className="text-xs text-zinc-400 line-through">
+                  {priceInfo.formattedOriginalPrice}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">One-time purchase • Lifetime access</span>
           </div>
 
           <button
             onClick={handleAdd}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm active:scale-95 ${
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 ${
               justAdded
-                ? 'bg-emerald-600 text-white'
-                : 'bg-zinc-900 hover:bg-indigo-600 text-white dark:bg-white dark:hover:bg-indigo-500 dark:text-zinc-900 dark:hover:text-white'
+                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                : 'bg-zinc-900 hover:bg-indigo-600 text-white dark:bg-white dark:hover:bg-indigo-500 dark:text-zinc-900 dark:hover:text-white shadow-zinc-900/10'
             }`}
           >
             {justAdded ? (
               <>
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
                 <span>Added!</span>
               </>
             ) : (

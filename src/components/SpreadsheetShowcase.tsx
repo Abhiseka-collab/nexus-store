@@ -220,24 +220,24 @@ export const SpreadsheetShowcase: React.FC = () => {
         </div>
 
         {/* Master Window Simulation */}
-        <div className="rounded-3xl bg-zinc-950 border border-zinc-800 shadow-2xl overflow-hidden transition-all duration-300">
+        <div className="rounded-3xl bg-zinc-950/90 backdrop-blur-xl border border-zinc-700/80 shadow-[0_20px_60px_-15px_rgba(79,70,229,0.2)] overflow-hidden transition-all duration-300">
           
           {/* Mock Window Titlebar */}
-          <div className="bg-zinc-900/90 px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+          <div className="bg-zinc-900/95 backdrop-blur-md px-4 py-3 border-b border-zinc-800/90 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
-              <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block" />
-              <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
-              <span className="ml-3 text-xs font-mono text-zinc-400 hidden sm:inline">
+              <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
+              <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-[0_0_8px_rgba(245,158,11,0.7)]" />
+              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+              <span className="ml-3 text-xs font-mono text-zinc-300 font-medium hidden sm:inline">
                 Personal_Growth_System_2026.xlsx — {currentTab.name}
               </span>
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono">
-              <span className="px-2 py-0.5 rounded bg-zinc-800 text-emerald-400 font-semibold border border-zinc-700">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/70 text-emerald-400 font-semibold border border-emerald-800/50 shadow-xs">
                 ● 100% Offline & Private
               </span>
-              <span className="hidden md:inline text-zinc-500">|</span>
+              <span className="hidden md:inline text-zinc-600">|</span>
               <span className="hidden md:inline text-zinc-400">Microsoft Excel + Google Sheets Ready</span>
             </div>
           </div>
@@ -259,16 +259,16 @@ export const SpreadsheetShowcase: React.FC = () => {
               <div className="space-y-6 animate-fade-in">
                 {/* Metric Widgets Row */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800/90">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/20 to-zinc-900 border border-amber-500/30 shadow-xs">
                     <span className="text-[11px] text-zinc-400 block font-medium">Active Habit Streak</span>
                     <div className="flex items-baseline gap-2 mt-1">
                       <span className="text-2xl sm:text-3xl font-black text-amber-400">42 Days</span>
-                      <Flame className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      <Flame className="w-4 h-4 text-amber-400 fill-amber-400 animate-flame-pulse" />
                     </div>
                     <span className="text-[10px] text-emerald-400 mt-1 block">Personal best: 58 days</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800/90">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/20 to-zinc-900 border border-emerald-500/30 shadow-xs">
                     <span className="text-[11px] text-zinc-400 block font-medium">Weekly Adherence</span>
                     <div className="flex items-baseline gap-2 mt-1">
                       <span className="text-2xl sm:text-3xl font-black text-emerald-400">94.2%</span>
@@ -277,7 +277,7 @@ export const SpreadsheetShowcase: React.FC = () => {
                     <span className="text-[10px] text-zinc-400 mt-1 block">33 of 35 habits logged</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800/90">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/20 to-zinc-900 border border-indigo-500/30 shadow-xs">
                     <span className="text-[11px] text-zinc-400 block font-medium">Q1 Core Goals</span>
                     <div className="flex items-baseline gap-2 mt-1">
                       <span className="text-2xl sm:text-3xl font-black text-indigo-400">4 Active</span>
@@ -286,7 +286,7 @@ export const SpreadsheetShowcase: React.FC = () => {
                     <span className="text-[10px] text-indigo-300 mt-1 block">78% milestone pace</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800/90">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/20 to-zinc-900 border border-purple-500/30 shadow-xs">
                     <span className="text-[11px] text-zinc-400 block font-medium">Deep Work Logged</span>
                     <div className="flex items-baseline gap-2 mt-1">
                       <span className="text-2xl sm:text-3xl font-black text-purple-400">34.5 hrs</span>
