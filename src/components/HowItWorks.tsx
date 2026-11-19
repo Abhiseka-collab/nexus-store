@@ -13,7 +13,7 @@ const STEPS = [
   {
     step: '02',
     title: '1-Click Encrypted Checkout',
-    desc: 'Complete payment securely via Apple Pay, Google Pay, or Credit Card. All checkouts are processed with 256-bit bank grade encryption.',
+    desc: 'Complete payment securely via Razorpay (UPI, Google Pay, PhonePe, Cards & NetBanking). All transactions are protected with 256-bit bank-grade encryption.',
     icon: ShieldCheck,
   },
   {

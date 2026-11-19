@@ -3,20 +3,49 @@ import Razorpay from 'razorpay';
 
 export async function POST(req: Request) {
   try {
-    const { amount, currency = 'USD', receipt } = await req.json();
+    const body = await req.json();
+    const { amount, currency = 'INR', receipt } = body || {};
+
+    // Validate amount: must be a positive finite number greater than zero
+    const numAmount = Number(amount);
+    if (!numAmount || isNaN(numAmount) || !isFinite(numAmount) || numAmount <= 0) {
+      return NextResponse.json(
+        { error: 'Invalid order amount: must be a positive number greater than zero.' },
+        { status: 400 }
+      );
+    }
+
+    // Safety ceiling ($50,000 / ₹5,000,000 max single order)
+    if (numAmount > 50000) {
+      return NextResponse.json(
+        { error: 'Order amount exceeds transaction limit.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate and sanitize currency code (3 uppercase alpha characters)
+    const safeCurrency = typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency)
+      ? currency.toUpperCase()
+      : 'INR';
 
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-    // Check if live/test credentials exist
+    // In production, missing credentials must fail closed
     if (!keyId || !keySecret) {
-      // Sandbox fallback response if keys haven't been pasted yet
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { error: 'Payment gateway configuration missing. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.' },
+          { status: 500 }
+        );
+      }
+      // Sandbox fallback response for local development without keys
       return NextResponse.json({
         mock: true,
         orderId: `order_mock_${Date.now()}`,
-        amount: Math.round(Number(amount) * 100),
-        currency,
-        message: 'Razorpay keys not yet configured in .env.local. Operating in test mode.',
+        amount: Math.round(numAmount * 100),
+        currency: safeCurrency,
+        message: 'Razorpay keys not yet configured. Operating in local sandbox fallback mode.',
       });
     }
 
@@ -26,9 +55,9 @@ export async function POST(req: Request) {
     });
 
     const options = {
-      amount: Math.round(Number(amount) * 100), // amount in lowest currency unit (paise / cents)
-      currency: currency.toUpperCase(),
-      receipt: receipt || `rcpt_${Date.now()}`,
+      amount: Math.round(numAmount * 100), // amount in lowest currency unit (paise / cents)
+      currency: safeCurrency,
+      receipt: typeof receipt === 'string' ? receipt.slice(0, 40) : `rcpt_${Date.now()}`,
     };
 
     const order = await razorpay.orders.create(options);

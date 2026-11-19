@@ -159,7 +159,9 @@ export const ProductCatalog: React.FC = () => {
         <div className="p-12 text-center rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800">
           <Sparkles className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
           <h3 className="text-base font-bold text-zinc-900 dark:text-white">
-            No products found matching &ldquo;{searchQuery}&rdquo;
+            {searchQuery
+              ? `No products found matching "${searchQuery}"`
+              : `No products found in category "${selectedCategory}"`}
           </h3>
           <p className="mt-1 text-xs text-zinc-500">
             Try adjusting your search query or reset your category filter.

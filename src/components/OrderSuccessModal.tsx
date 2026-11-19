@@ -38,11 +38,15 @@ export const OrderSuccessModal: React.FC = () => {
 
   // Real file download
   const handleDownload = (productTitle: string, filename: string) => {
+    // Sanitize filename against directory traversal
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '');
+    if (!safeFilename) return;
+
     // If delivering real spreadsheet asset
-    if (filename.endsWith('.xlsx')) {
+    if (safeFilename.endsWith('.xlsx')) {
       const link = document.createElement('a');
-      link.href = `/downloads/${filename}`;
-      link.download = filename;
+      link.href = `/downloads/${encodeURIComponent(safeFilename)}`;
+      link.download = safeFilename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

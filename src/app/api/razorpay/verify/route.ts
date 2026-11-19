@@ -3,16 +3,35 @@ import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.json();
+    const body = await req.json();
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body || {};
+
+    // Validate required fields are non-empty strings
+    if (
+      !razorpay_order_id || typeof razorpay_order_id !== 'string' ||
+      !razorpay_payment_id || typeof razorpay_payment_id !== 'string' ||
+      !razorpay_signature || typeof razorpay_signature !== 'string'
+    ) {
+      return NextResponse.json(
+        { verified: false, error: 'Missing or invalid Razorpay payment parameters.' },
+        { status: 400 }
+      );
+    }
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-    // In test/mock mode without keys
+    // Fail closed in production if secret is missing
     if (!keySecret) {
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { verified: false, error: 'Server configuration error: Gateway secret missing.' },
+          { status: 500 }
+        );
+      }
       return NextResponse.json({
         verified: true,
         mock: true,
-        message: 'Signature accepted in sandbox mode.',
+        message: 'Signature accepted in development fallback mode.',
       });
     }
 
@@ -20,18 +39,22 @@ export async function POST(req: Request) {
     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
     const generatedSignature = hmac.digest('hex');
 
-    if (generatedSignature === razorpay_signature) {
+    // Constant-time comparison to prevent timing attacks
+    const sigA = Buffer.from(generatedSignature, 'utf8');
+    const sigB = Buffer.from(razorpay_signature, 'utf8');
+
+    if (sigA.length === sigB.length && crypto.timingSafeEqual(sigA, sigB)) {
       return NextResponse.json({ verified: true });
     } else {
       return NextResponse.json(
-        { verified: false, error: 'Invalid Razorpay signature' },
+        { verified: false, error: 'Invalid Razorpay signature. Verification failed.' },
         { status: 400 }
       );
     }
   } catch (error: any) {
-    console.error('Signature verification error:', error);
+    console.error('Razorpay signature verification error:', error);
     return NextResponse.json(
-      { verified: false, error: 'Verification failed' },
+      { verified: false, error: error?.message || 'Verification failed.' },
       { status: 500 }
     );
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Lock, CreditCard, CheckCircle2, Shield, Zap, Sparkles, Smartphone } from 'lucide-react';
+import { X, Lock, CreditCard, CheckCircle2, Shield, Smartphone, AlertCircle, Building2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { sanitizeText } from '@/utils/security';
 
@@ -10,11 +10,9 @@ export const CheckoutModal: React.FC = () => {
 
   const [name, setName] = useState('Alex Rivera');
   const [email, setEmail] = useState('alex.creator@example.com');
-  const [paymentTab, setPaymentTab] = useState<'razorpay' | 'card' | 'express'>('razorpay');
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
-  const [expiry, setExpiry] = useState('12/28');
-  const [cvc, setCvc] = useState('999');
+  const [paymentTab, setPaymentTab] = useState<'upi' | 'card' | 'netbanking'>('upi');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isCheckoutOpen) return null;
 
@@ -35,35 +33,45 @@ export const CheckoutModal: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isProcessing) return;
+    setErrorMessage(null);
+
     const cleanName = sanitizeText(name, 80);
     const cleanEmail = sanitizeText(email, 100);
-    if (!cleanName || !cleanEmail || !cleanEmail.includes('@')) return;
 
-    if (paymentTab === 'razorpay') {
-      await handleRazorpayFlow(cleanName, cleanEmail);
-    } else {
-      setIsProcessing(true);
-      setTimeout(() => {
-        completeOrder(cleanName, cleanEmail);
-        setIsProcessing(false);
-      }, 1200);
+    if (!cleanName) {
+      setErrorMessage('Please enter your full name.');
+      return;
     }
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setErrorMessage('Please enter a valid email address for file delivery.');
+      return;
+    }
+
+    await handlePaymentFlow(cleanName, cleanEmail);
   };
 
-  const handleRazorpayFlow = async (customerName: string, customerEmail: string) => {
+  const handlePaymentFlow = async (customerName: string, customerEmail: string) => {
     setIsProcessing(true);
+    setErrorMessage(null);
+
     try {
+      // 1. Create order on server
       const res = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: total, currency: 'INR' }),
       });
-      const orderData = await res.json();
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to initialize payment gateway order.');
+      }
+
+      const orderData = await res.json();
       const scriptLoaded = await loadRazorpayScript();
       const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
-      // If Razorpay keys and script are active, open Razorpay Checkout modal
+      // 2. Open official Razorpay modal if key and script are available
       if (scriptLoaded && razorpayKey && (window as any).Razorpay && !orderData.mock) {
         const options = {
           key: razorpayKey,
@@ -80,14 +88,26 @@ export const CheckoutModal: React.FC = () => {
             color: '#4f46e5',
           },
           handler: async (response: any) => {
-            // Verify HMAC signature via server endpoint
-            await fetch('/api/razorpay/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(response),
-            });
-            completeOrder(customerName, customerEmail);
-            setIsProcessing(false);
+            // 3. Cryptographically verify signature on server before granting download access
+            try {
+              const verifyRes = await fetch('/api/razorpay/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(response),
+              });
+
+              const verifyData = await verifyRes.json();
+
+              if (verifyRes.ok && verifyData.verified) {
+                completeOrder(customerName, customerEmail);
+              } else {
+                setErrorMessage(verifyData.error || 'Payment signature verification failed. Please contact support.');
+              }
+            } catch (vErr: any) {
+              setErrorMessage('Verification error: unable to validate payment signature with server.');
+            } finally {
+              setIsProcessing(false);
+            }
           },
           modal: {
             ondismiss: () => {
@@ -95,27 +115,27 @@ export const CheckoutModal: React.FC = () => {
             },
           },
         };
+
         const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', function (resp: any) {
+          setIsProcessing(false);
+          setErrorMessage(resp?.error?.description || 'Payment was declined or cancelled.');
+        });
         rzp.open();
-      } else {
-        // Test / Sandbox Fallback
+      } else if (orderData.mock) {
+        // Safe development sandbox mode only
         setTimeout(() => {
           completeOrder(customerName, customerEmail);
           setIsProcessing(false);
         }, 1200);
+      } else {
+        throw new Error('Unable to connect to payment processor. Please verify network connection or try again.');
       }
-    } catch {
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      setErrorMessage(err?.message || 'Payment initiation failed. Please try again.');
       setIsProcessing(false);
     }
-  };
-
-  const handleQuickDemoCheckout = () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    setTimeout(() => {
-      completeOrder('Demo Creator', 'creator@nexus.io');
-      setIsProcessing(false);
-    }, 800);
   };
 
   return (
@@ -126,8 +146,8 @@ export const CheckoutModal: React.FC = () => {
       >
         {/* Header */}
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-950/50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20">
               <Lock className="w-4 h-4" />
             </div>
             <div>
@@ -138,6 +158,7 @@ export const CheckoutModal: React.FC = () => {
           <button
             onClick={closeCheckout}
             className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            aria-label="Close checkout"
           >
             <X className="w-5 h-5" />
           </button>
@@ -146,30 +167,18 @@ export const CheckoutModal: React.FC = () => {
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           
-          {/* Quick Demo Test Mode Banner */}
-          <div className="p-3.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-200 dark:border-indigo-800/80 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
-              <div className="text-xs">
-                <span className="font-bold text-indigo-950 dark:text-indigo-200 block">Instant Demo Test Mode</span>
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Skip payment details to test digital file download</span>
-              </div>
+          {/* Error Alert */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 flex items-start gap-2.5 text-xs text-rose-800 dark:text-rose-200">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
             </div>
-            <button
-              type="button"
-              onClick={handleQuickDemoCheckout}
-              disabled={isProcessing}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1 shrink-0"
-            >
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>1-Click Test</span>
-            </button>
-          </div>
+          )}
 
           {/* Contact Details */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              1. Where should we send your download links?
+              1. Delivery Information
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -181,6 +190,7 @@ export const CheckoutModal: React.FC = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="Alex Rivera"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -193,6 +203,7 @@ export const CheckoutModal: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="alex@example.com"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -202,22 +213,22 @@ export const CheckoutModal: React.FC = () => {
           {/* Payment Method Selector */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              2. Payment Method
+              2. Payment Method (via Razorpay Gateway)
             </h4>
 
             <div className="grid grid-cols-3 gap-2">
-              {/* Razorpay Option */}
+              {/* UPI Option */}
               <button
                 type="button"
-                onClick={() => setPaymentTab('razorpay')}
+                onClick={() => setPaymentTab('upi')}
                 className={`py-2 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                  paymentTab === 'razorpay'
+                  paymentTab === 'upi'
                     ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shadow-sm'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                 }`}
               >
                 <Smartphone className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="truncate">Razorpay (UPI)</span>
+                <span className="truncate">UPI / GPay</span>
               </button>
 
               {/* Card Option */}
@@ -234,88 +245,35 @@ export const CheckoutModal: React.FC = () => {
                 <span>Card</span>
               </button>
 
-              {/* Express Option */}
+              {/* NetBanking / Wallets Option */}
               <button
                 type="button"
-                onClick={() => setPaymentTab('express')}
+                onClick={() => setPaymentTab('netbanking')}
                 className={`py-2 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                  paymentTab === 'express'
+                  paymentTab === 'netbanking'
                     ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shadow-sm'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                 }`}
               >
-                <span>Pay/GPay</span>
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="truncate">NetBanking</span>
               </button>
             </div>
 
-            {/* Razorpay Body */}
-            {paymentTab === 'razorpay' && (
-              <div className="p-4 rounded-xl bg-indigo-50/40 dark:bg-zinc-800/60 border border-indigo-200/80 dark:border-zinc-700 space-y-2 text-center">
-                <div className="flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs">
-                  <span>⚡ Official Razorpay Gateway</span>
-                </div>
-                <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                  Supports <strong>UPI (GPay, PhonePe, Paytm, QR Code)</strong>, Indian & International Cards, and NetBanking with bank-level encryption.
-                </p>
-                <span className="inline-block text-[10px] text-zinc-400 font-mono">
-                  {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ? '✓ Razorpay Active' : '● Test/Sandbox Mode Ready'}
-                </span>
+            {/* Gateway Details Banner */}
+            <div className="p-4 rounded-xl bg-indigo-50/40 dark:bg-zinc-800/60 border border-indigo-200/80 dark:border-zinc-700 space-y-2 text-center">
+              <div className="flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                <span>⚡ Official Razorpay Encrypted Gateway</span>
               </div>
-            )}
-
-            {paymentTab === 'card' && (
-              <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 space-y-3">
-                <div>
-                  <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
-                    Card Number
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <CreditCard className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      value={expiry}
-                      onChange={(e) => setExpiry(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
-                      CVC / CVV
-                    </label>
-                    <input
-                      type="text"
-                      value={cvc}
-                      onChange={(e) => setCvc(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {paymentTab === 'express' && (
-              <div className="p-6 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-center space-y-2">
-                <span className="text-2xl">⚡</span>
-                <h5 className="text-xs font-bold text-zinc-900 dark:text-white">Apple Pay & Google Pay</h5>
-                <p className="text-[11px] text-zinc-500">
-                  Biometric touch/face ID checkout will activate upon clicking Complete Order.
-                </p>
-              </div>
-            )}
+              <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                {paymentTab === 'upi' && 'Instant checkout with Google Pay, PhonePe, Paytm, or any UPI App via QR code.'}
+                {paymentTab === 'card' && 'Supports all Visa, MasterCard, RuPay, and American Express cards with 3D Secure OTP.'}
+                {paymentTab === 'netbanking' && 'Direct secure payment through 50+ Indian and international banking portals.'}
+              </p>
+              <span className="inline-block text-[10px] text-zinc-400 font-mono">
+                {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ? '✓ Razorpay Active' : '● Test/Sandbox Mode Ready'}
+              </span>
+            </div>
           </div>
 
           {/* Order Summary Line */}
@@ -324,7 +282,7 @@ export const CheckoutModal: React.FC = () => {
               <span>{items.length} {items.length === 1 ? 'item' : 'items'} in order</span>
               {discountAmount > 0 && (
                 <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                  Promo {appliedPromo} applied
+                  Promo {appliedPromo} applied (-${discountAmount.toFixed(2)})
                 </span>
               )}
             </div>
@@ -350,11 +308,7 @@ export const CheckoutModal: React.FC = () => {
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>
-                  {paymentTab === 'razorpay'
-                    ? `Pay with Razorpay / UPI ($${total.toFixed(2)})`
-                    : `Complete Purchase ($${total.toFixed(2)})`}
-                </span>
+                <span>Pay Securely with Razorpay (${total.toFixed(2)})</span>
               </>
             )}
           </button>

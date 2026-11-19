@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: 'How does payment processing work?',
-    a: 'All payments are handled securely through Stripe, Apple Pay, Google Pay, or Lemon Squeezy with 256-bit bank-level SSL encryption. We never store or see your credit card credentials.',
+    a: 'All payments are handled securely through Razorpay, supporting UPI (Google Pay, PhonePe, Paytm, QR Code), Debit/Credit Cards (Visa, MasterCard, RuPay), and NetBanking with 256-bit bank-level SSL encryption. We never store or see your card or banking credentials.',
   },
 ];
 

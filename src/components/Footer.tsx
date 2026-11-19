@@ -45,6 +45,7 @@ export const Footer: React.FC = () => {
               Categories
             </h4>
             <ul className="space-y-2">
+              <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-indigo-600 dark:text-indigo-400">Spreadsheets & Systems</a></li>
               <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400">Notion Templates</a></li>
               <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400">Design Systems & 3D</a></li>
               <li><a href="#products" className="hover:text-indigo-600 dark:hover:text-indigo-400">Solo Founder Playbooks</a></li>

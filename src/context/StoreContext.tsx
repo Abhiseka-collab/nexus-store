@@ -345,7 +345,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     const hashedInput = await hashPassword(password);
-    if (hashedInput === adminPasswordHash || password === 'admin') {
+    if (hashedInput === adminPasswordHash) {
       setIsAdminAuthenticated(true);
       sessionStorage.setItem('nexus_admin_auth', 'true');
       setFailedAttempts(0);
