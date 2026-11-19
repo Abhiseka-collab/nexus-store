@@ -42,6 +42,9 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "NEXUS Store" }],
   creator: "NEXUS",
+  verification: {
+    google: "07e650b31d6d6013",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
