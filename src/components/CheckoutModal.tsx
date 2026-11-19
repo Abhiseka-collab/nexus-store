@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Lock, CreditCard, CheckCircle2, Shield, Zap, Sparkles } from 'lucide-react';
+import { X, Lock, CreditCard, CheckCircle2, Shield, Zap, Sparkles, Smartphone } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { sanitizeText } from '@/utils/security';
 
@@ -10,7 +10,7 @@ export const CheckoutModal: React.FC = () => {
 
   const [name, setName] = useState('Alex Rivera');
   const [email, setEmail] = useState('alex.creator@example.com');
-  const [paymentTab, setPaymentTab] = useState<'card' | 'express'>('card');
+  const [paymentTab, setPaymentTab] = useState<'razorpay' | 'card' | 'express'>('razorpay');
   const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
   const [expiry, setExpiry] = useState('12/28');
   const [cvc, setCvc] = useState('999');
@@ -18,25 +18,102 @@ export const CheckoutModal: React.FC = () => {
 
   if (!isCheckoutOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // On-demand loader for official Razorpay checkout script
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined') return resolve(false);
+      if ((window as any).Razorpay) return resolve(true);
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing) return; // Prevent double submission race condition
+    if (isProcessing) return;
     const cleanName = sanitizeText(name, 80);
     const cleanEmail = sanitizeText(email, 100);
     if (!cleanName || !cleanEmail || !cleanEmail.includes('@')) return;
 
+    if (paymentTab === 'razorpay') {
+      await handleRazorpayFlow(cleanName, cleanEmail);
+    } else {
+      setIsProcessing(true);
+      setTimeout(() => {
+        completeOrder(cleanName, cleanEmail);
+        setIsProcessing(false);
+      }, 1200);
+    }
+  };
+
+  const handleRazorpayFlow = async (customerName: string, customerEmail: string) => {
     setIsProcessing(true);
-    setTimeout(() => {
-      completeOrder(cleanName, cleanEmail);
+    try {
+      const res = await fetch('/api/razorpay/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total, currency: 'USD' }),
+      });
+      const orderData = await res.json();
+
+      const scriptLoaded = await loadRazorpayScript();
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+
+      // If Razorpay keys and script are active, open Razorpay Checkout modal
+      if (scriptLoaded && razorpayKey && (window as any).Razorpay && !orderData.mock) {
+        const options = {
+          key: razorpayKey,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: 'NEXUS',
+          description: `Digital Assets Purchase (${items.length} items)`,
+          order_id: orderData.id,
+          prefill: {
+            name: customerName,
+            email: customerEmail,
+          },
+          theme: {
+            color: '#4f46e5',
+          },
+          handler: async (response: any) => {
+            // Verify HMAC signature via server endpoint
+            await fetch('/api/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(response),
+            });
+            completeOrder(customerName, customerEmail);
+            setIsProcessing(false);
+          },
+          modal: {
+            ondismiss: () => {
+              setIsProcessing(false);
+            },
+          },
+        };
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      } else {
+        // Test / Sandbox Fallback
+        setTimeout(() => {
+          completeOrder(customerName, customerEmail);
+          setIsProcessing(false);
+        }, 1200);
+      }
+    } catch {
       setIsProcessing(false);
-    }, 1200);
+    }
   };
 
   const handleQuickDemoCheckout = () => {
-    if (isProcessing) return; // Prevent double submission race condition
+    if (isProcessing) return;
     setIsProcessing(true);
     setTimeout(() => {
-      completeOrder('Demo Creator', 'creator@lumina-vault.io');
+      completeOrder('Demo Creator', 'creator@nexus.io');
       setIsProcessing(false);
     }, 800);
   };
@@ -44,7 +121,7 @@ export const CheckoutModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/60 backdrop-blur-md animate-fade-in">
       <div
-        className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+        className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -75,7 +152,7 @@ export const CheckoutModal: React.FC = () => {
               <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
               <div className="text-xs">
                 <span className="font-bold text-indigo-950 dark:text-indigo-200 block">Instant Demo Test Mode</span>
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Skip entering card details to test delivery</span>
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Skip payment details to test digital file download</span>
               </div>
             </div>
             <button
@@ -128,34 +205,65 @@ export const CheckoutModal: React.FC = () => {
               2. Payment Method
             </h4>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              {/* Razorpay Option */}
+              <button
+                type="button"
+                onClick={() => setPaymentTab('razorpay')}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                  paymentTab === 'razorpay'
+                    ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="truncate">Razorpay (UPI)</span>
+              </button>
+
+              {/* Card Option */}
               <button
                 type="button"
                 onClick={() => setPaymentTab('card')}
-                className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                className={`py-2 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                   paymentTab === 'card'
-                    ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400'
+                    ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shadow-sm'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                 }`}
               >
                 <CreditCard className="w-3.5 h-3.5" />
-                <span>Credit / Debit Card</span>
+                <span>Card</span>
               </button>
 
+              {/* Express Option */}
               <button
                 type="button"
                 onClick={() => setPaymentTab('express')}
-                className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                className={`py-2 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                   paymentTab === 'express'
-                    ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400'
+                    ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shadow-sm'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                 }`}
               >
-                <span> Pay / G Pay</span>
+                <span>Pay/GPay</span>
               </button>
             </div>
 
-            {paymentTab === 'card' ? (
+            {/* Razorpay Body */}
+            {paymentTab === 'razorpay' && (
+              <div className="p-4 rounded-xl bg-indigo-50/40 dark:bg-zinc-800/60 border border-indigo-200/80 dark:border-zinc-700 space-y-2 text-center">
+                <div className="flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                  <span>⚡ Official Razorpay Gateway</span>
+                </div>
+                <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                  Supports <strong>UPI (GPay, PhonePe, Paytm, QR Code)</strong>, Indian & International Cards, and NetBanking with bank-level encryption.
+                </p>
+                <span className="inline-block text-[10px] text-zinc-400 font-mono">
+                  {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ? '✓ Razorpay Active' : '● Test/Sandbox Mode Ready'}
+                </span>
+              </div>
+            )}
+
+            {paymentTab === 'card' && (
               <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 space-y-3">
                 <div>
                   <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
@@ -197,7 +305,9 @@ export const CheckoutModal: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {paymentTab === 'express' && (
               <div className="p-6 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-center space-y-2">
                 <span className="text-2xl">⚡</span>
                 <h5 className="text-xs font-bold text-zinc-900 dark:text-white">Apple Pay & Google Pay</h5>
@@ -230,7 +340,7 @@ export const CheckoutModal: React.FC = () => {
           <button
             type="submit"
             disabled={isProcessing}
-            className="w-full py-4 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             {isProcessing ? (
               <div className="flex items-center gap-2">
@@ -240,7 +350,11 @@ export const CheckoutModal: React.FC = () => {
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Complete Purchase (${total.toFixed(2)})</span>
+                <span>
+                  {paymentTab === 'razorpay'
+                    ? `Pay with Razorpay / UPI ($${total.toFixed(2)})`
+                    : `Complete Purchase ($${total.toFixed(2)})`}
+                </span>
               </>
             )}
           </button>
