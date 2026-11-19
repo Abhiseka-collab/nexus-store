@@ -6,6 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { ProductCatalog } from '@/components/ProductCatalog';
 import { SpreadsheetShowcase } from '@/components/SpreadsheetShowcase';
+import { UnboxingCard } from '@/components/UnboxingCard';
 import { ChaosVsFlow } from '@/components/ChaosVsFlow';
 import { RoiCalculator } from '@/components/RoiCalculator';
 import { HowItWorks } from '@/components/HowItWorks';
@@ -35,6 +36,7 @@ export default function Home() {
         <Hero />
         <ProductCatalog />
         <SpreadsheetShowcase />
+        <UnboxingCard />
         <ChaosVsFlow />
         <RoiCalculator />
         <HowItWorks />

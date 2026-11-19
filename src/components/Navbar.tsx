@@ -50,6 +50,9 @@ export const Navbar: React.FC = () => {
               <span>Spreadsheet Tour</span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800">16 Tabs</span>
             </a>
+            <a href="/#unboxing" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              What&apos;s Inside
+            </a>
             <a href="/#roi-calculator" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               ROI Calculator
             </a>
