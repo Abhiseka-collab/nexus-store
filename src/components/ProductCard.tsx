@@ -77,16 +77,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Content */}
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
-          {/* Category & Rating */}
+          {/* Category & Status */}
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="font-semibold text-indigo-600 dark:text-indigo-400 tracking-wide uppercase text-[11px]">
               {product.category}
             </span>
-            <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{product.rating}</span>
-              <span className="text-zinc-400">({product.reviewCount})</span>
-            </div>
+            {product.reviewCount > 0 ? (
+              <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                <span className="font-bold text-zinc-800 dark:text-zinc-200">{product.rating}</span>
+                <span className="text-zinc-400">({product.reviewCount})</span>
+              </div>
+            ) : (
+              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/40">
+                Verified Template
+              </span>
+            )}
           </div>
 
           {/* Title */}

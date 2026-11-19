@@ -40,10 +40,7 @@ export const Navbar: React.FC = () => {
               Products
             </a>
             <a href="/#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-              Why Us
-            </a>
-            <a href="/#reviews" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-              Reviews
+              Features
             </a>
             <a href="/#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               FAQ

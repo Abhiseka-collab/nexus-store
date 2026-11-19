@@ -11,10 +11,10 @@ export const PRODUCTS: Product[] = [
     price: 29,
     originalPrice: 59,
     category: 'Spreadsheets & Systems',
-    badge: 'Bestseller',
+    badge: 'New',
     rating: 5.0,
-    reviewCount: 48,
-    downloadsCount: 1240,
+    reviewCount: 0,
+    downloadsCount: 0,
     thumbnail: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1200&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1200&q=80',

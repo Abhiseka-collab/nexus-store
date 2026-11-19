@@ -6,7 +6,6 @@ import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { ProductCatalog } from '@/components/ProductCatalog';
 import { HowItWorks } from '@/components/HowItWorks';
-import { ReviewsSection } from '@/components/ReviewsSection';
 import { FaqSection } from '@/components/FaqSection';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -32,7 +31,6 @@ export default function Home() {
         <Hero />
         <ProductCatalog />
         <HowItWorks />
-        <ReviewsSection />
         <FaqSection />
       </main>
 

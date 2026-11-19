@@ -27,19 +27,22 @@ export const Hero: React.FC = () => {
 
         {/* Subhead */}
         <p className="mt-6 text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          High-performance Notion workspaces, battle-tested UI kits, solo-founder playbooks, and production-ready code boilerplates. Ready to download in seconds.
+          Complete 16-in-1 life operating systems, habit trackers, and high-performance digital tools. Ready to download in seconds.
         </p>
 
-        {/* Rating & Social Proof */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-          <div className="flex items-center gap-1 text-amber-500">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-            ))}
-          </div>
-          <span className="font-semibold text-zinc-900 dark:text-white">4.9 / 5 rating</span>
+        {/* Authentic Trust Highlights */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800/60">
+            ⚡ Instant Excel (.xlsx) Download
+          </span>
           <span className="hidden sm:inline text-zinc-300 dark:text-zinc-700">•</span>
-          <span>Trusted by <strong>4,800+</strong> creators & developers worldwide</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-200 dark:border-indigo-800/60">
+            🔒 100% Private & Offline
+          </span>
+          <span className="hidden sm:inline text-zinc-300 dark:text-zinc-700">•</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold border border-zinc-200 dark:border-zinc-700">
+            🔄 Free Lifetime Updates
+          </span>
         </div>
 
         {/* CTAs */}

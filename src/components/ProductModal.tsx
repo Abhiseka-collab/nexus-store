@@ -99,11 +99,17 @@ export const ProductModal: React.FC = () => {
                 <span className="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
                   {viewingProduct.category}
                 </span>
-                <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{viewingProduct.rating}</span>
-                  <span>({viewingProduct.reviewCount} reviews)</span>
-                </div>
+                {viewingProduct.reviewCount > 0 ? (
+                  <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    <span>{viewingProduct.rating}</span>
+                    <span>({viewingProduct.reviewCount} reviews)</span>
+                  </div>
+                ) : (
+                  <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/40">
+                    Verified Digital Asset
+                  </span>
+                )}
               </div>
 
               {/* Title & Tagline */}
