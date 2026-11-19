@@ -171,7 +171,7 @@ export const ChaosVsFlow: React.FC = () => {
                 <span className="text-[10px] text-zinc-400 font-mono block">One-Time Payment • Own It Forever</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-white" suppressHydrationWarning>
-                    {priceInfo?.formattedPrice || '₹489 / $13.30'}
+                    {priceInfo?.formattedPrice || '₹10 / $1'}
                   </span>
                   <span className="text-xs text-emerald-400 font-semibold">with code LAUNCH30</span>
                 </div>

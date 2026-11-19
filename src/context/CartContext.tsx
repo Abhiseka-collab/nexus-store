@@ -167,7 +167,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return sum + itemPrice * item.quantity;
   }, 0);
   const discountAmount = Math.round(subtotal * discountRate * 100) / 100;
-  const total = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
+  const minFloor = currency === 'INR' ? 1 : 0.5;
+  const total = Math.max(minFloor, Math.round((subtotal - discountAmount) * 100) / 100);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const completeOrder = (customerName: string, customerEmail: string): Order => {

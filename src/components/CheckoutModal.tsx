@@ -27,7 +27,7 @@ export const CheckoutModal: React.FC = () => {
   if (!isCheckoutOpen) return null;
 
   // Amount in INR for Razorpay payment processing
-  const chargeAmountInr = currency === 'INR' ? Math.round(total) : Math.round(total * 86);
+  const chargeAmountInr = currency === 'INR' ? Math.max(1, Math.round(total)) : Math.max(1, Math.round(total * 86));
 
   // On-demand loader for official Razorpay checkout script
   const loadRazorpayScript = (): Promise<boolean> => {

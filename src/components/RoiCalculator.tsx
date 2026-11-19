@@ -194,7 +194,7 @@ export const RoiCalculator: React.FC = () => {
               <div className="pt-2 flex items-center justify-between text-xs text-zinc-300">
                 <span>One-Time System Investment:</span>
                 <span className="font-mono font-bold text-base text-white" suppressHydrationWarning>
-                  {priceInfo?.formattedPrice || (currency === 'INR' ? '₹489' : '$13.30')}
+                  {priceInfo?.formattedPrice || (currency === 'INR' ? '₹10' : '$1')}
                 </span>
               </div>
             </div>

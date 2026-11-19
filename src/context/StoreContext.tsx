@@ -17,7 +17,7 @@ import {
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: 'NEXUS',
   storeTagline: 'Curated digital assets for creators & founders',
-  announcementText: 'Launch Special: Use code LAUNCH30 for 30% OFF everything!',
+  announcementText: 'Special Flash Sale: 16-in-1 Personal Growth System now only ₹10 / $1!',
   promoCode: 'LAUNCH30',
   promoDiscount: 0.30,
   supportEmail: 'solution00000@outlook.com',
