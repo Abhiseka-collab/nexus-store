@@ -117,8 +117,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const parsed = JSON.parse(storedProducts);
         if (Array.isArray(parsed)) {
           const validated = parsed.map(validateProductSchema).filter(Boolean) as Product[];
-          if (validated.length > 0) setProducts(validated);
+          // Filter out legacy demo placeholder items
+          const userProducts = validated.filter(
+            (p) =>
+              p.id !== 'prod-notion-second-brain' &&
+              p.id !== 'prod-saas-design-system' &&
+              p.id !== 'prod-solo-founder-playbook' &&
+              p.id !== 'prod-saas-starter-kit' &&
+              p.id !== 'prod-minimal-lightroom-presets' &&
+              p.id !== 'prod-3d-holographic-icons'
+          );
+          setProducts(userProducts);
+          safeSetItem('nexus_products', JSON.stringify(userProducts));
         }
+      } else {
+        setProducts([]);
       }
 
       const storedSettings = localStorage.getItem('nexus_settings');

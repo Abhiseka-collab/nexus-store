@@ -136,7 +136,25 @@ export const ProductCatalog: React.FC = () => {
       </div>
 
       {/* Product Grid */}
-      {filteredProducts.length === 0 ? (
+      {products.length === 0 ? (
+        <div className="p-16 text-center rounded-3xl bg-zinc-50 dark:bg-zinc-900/40 border border-dashed border-zinc-300 dark:border-zinc-800">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-6 h-6 animate-pulse" />
+          </div>
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+            Ready for your digital drops!
+          </h3>
+          <p className="mt-1.5 text-xs text-zinc-500 max-w-sm mx-auto leading-relaxed">
+            All placeholder products have been removed. Add your first digital asset via the Admin portal.
+          </p>
+          <a
+            href="/admin"
+            className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/25 transition-all hover:scale-105"
+          >
+            <span>+ Enlist Your First Product in Admin</span>
+          </a>
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <div className="p-12 text-center rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800">
           <Sparkles className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
           <h3 className="text-base font-bold text-zinc-900 dark:text-white">
