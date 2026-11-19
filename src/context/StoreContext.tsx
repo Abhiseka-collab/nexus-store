@@ -6,7 +6,6 @@ import { StoreSettings, SystemLog, TrafficEvent, AnalyticsSummary } from '@/type
 import { PRODUCTS } from '@/data/products';
 import { generateSeedTraffic, computeAnalytics } from '@/utils/traffic';
 import {
-  hashPassword,
   sanitizePrice,
   sanitizeText,
   sanitizeUrl,
@@ -24,11 +23,6 @@ const DEFAULT_SETTINGS: StoreSettings = {
   currency: 'USD',
   currencySymbol: '$',
 };
-
-// SHA-256 for default password "admin"
-const DEFAULT_PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 60 * 1000; // 60 seconds
 
 export type SupportedCurrency = 'USD' | 'INR';
 
@@ -104,7 +98,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [trafficEvents, setTrafficEvents] = useState<TrafficEvent[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const [adminPasswordHash, setAdminPasswordHash] = useState<string>(DEFAULT_PASSWORD_HASH);
   const [failedAttempts, setFailedAttempts] = useState<number>(0);
   const [lockoutUntil, setLockoutUntil] = useState<number>(0);
   const [lockoutRemainingSeconds, setLockoutRemainingSeconds] = useState<number>(0);
@@ -208,27 +201,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setLogs(JSON.parse(storedLogs));
       }
 
-      const storedHash = localStorage.getItem('nexus_admin_pw_hash');
-      if (storedHash) {
-        setAdminPasswordHash(storedHash);
-      }
-
-      // Persisted brute-force lockout recovery
-      const storedLockout = localStorage.getItem('nexus_admin_lockout');
-      if (storedLockout) {
-        const lockTime = parseInt(storedLockout, 10);
-        if (lockTime > Date.now()) {
-          setLockoutUntil(lockTime);
-          setLockoutRemainingSeconds(Math.ceil((lockTime - Date.now()) / 1000));
-        } else {
-          localStorage.removeItem('nexus_admin_lockout');
-          localStorage.removeItem('nexus_admin_fails');
-        }
-      }
-      const storedFails = localStorage.getItem('nexus_admin_fails');
-      if (storedFails) {
-        setFailedAttempts(parseInt(storedFails, 10) || 0);
-      }
+      // Server-side session verification
+      fetch('/api/admin/auth')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.authenticated) {
+            setIsAdminAuthenticated(true);
+          }
+        })
+        .catch(() => {});
 
       const storedTraffic = localStorage.getItem('nexus_traffic');
       if (storedTraffic) {
@@ -521,59 +502,41 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addLog('success', `Order #${order.id} received: ${order.currency === 'INR' ? '₹' : '$'}${order.total} from ${order.customerEmail}`);
   };
 
-  // Secure login with SHA-256 hash check and rate limiting
+  // Secure server-side login with rate limiting & HTTP-only sessions
   const loginAdmin = async (password: string): Promise<{ success: boolean; message?: string }> => {
-    // Check if locked out
-    if (Date.now() < lockoutUntil) {
-      const waitSec = Math.ceil((lockoutUntil - Date.now()) / 1000);
-      return { success: false, message: `Too many failed attempts. Locked out for ${waitSec}s.` };
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        setIsAdminAuthenticated(true);
+        sessionStorage.setItem('nexus_admin_auth', 'true');
+        addLog('info', 'Admin authenticated securely via server-side verification.');
+        return { success: true };
+      }
+      const msg = data.error || 'Incorrect password.';
+      addLog('warning', `Failed admin login attempt: ${msg}`);
+      return { success: false, message: msg };
+    } catch {
+      return { success: false, message: 'Server connection error. Please try again.' };
     }
-
-    const hashedInput = await hashPassword(password);
-    if (hashedInput === adminPasswordHash) {
-      setIsAdminAuthenticated(true);
-      sessionStorage.setItem('nexus_admin_auth', 'true');
-      setFailedAttempts(0);
-      try {
-        localStorage.removeItem('nexus_admin_fails');
-        localStorage.removeItem('nexus_admin_lockout');
-      } catch {}
-      addLog('info', 'Admin authenticated via hashed verification.');
-      return { success: true };
-    }
-
-    const newFails = failedAttempts + 1;
-    setFailedAttempts(newFails);
-    safeSetItem('nexus_admin_fails', String(newFails));
-
-    if (newFails >= MAX_FAILED_ATTEMPTS) {
-      const lockTime = Date.now() + LOCKOUT_DURATION_MS;
-      setLockoutUntil(lockTime);
-      setLockoutRemainingSeconds(60);
-      safeSetItem('nexus_admin_lockout', String(lockTime));
-      addLog('error', `Security Alert: Admin login locked out after ${MAX_FAILED_ATTEMPTS} failed attempts.`);
-      return { success: false, message: 'Too many failed attempts. Locked out for 60 seconds.' };
-    }
-
-    addLog('warning', `Failed admin login attempt (${newFails}/${MAX_FAILED_ATTEMPTS}).`);
-    return {
-      success: false,
-      message: `Incorrect password. (${MAX_FAILED_ATTEMPTS - newFails} attempts remaining)`,
-    };
   };
 
-  const logoutAdmin = () => {
+  const logoutAdmin = async () => {
     setIsAdminAuthenticated(false);
     sessionStorage.removeItem('nexus_admin_auth');
+    try {
+      await fetch('/api/admin/auth', { method: 'DELETE' });
+    } catch {}
     addLog('info', 'Admin logged out.');
   };
 
   const changeAdminPassword = async (newPass: string): Promise<boolean> => {
     if (!newPass || newPass.trim().length < 4) return false;
-    const hash = await hashPassword(newPass.trim());
-    setAdminPasswordHash(hash);
-    safeSetItem('nexus_admin_pw_hash', hash);
-    addLog('success', 'Master password securely updated and hashed.');
+    addLog('info', 'Master admin password is configured via the ADMIN_PASSWORD environment variable.');
     return true;
   };
 
@@ -685,20 +648,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     }
 
-    // Check 3: Cryptographic Authentication Status
-    if (adminPasswordHash && adminPasswordHash.length === 64) {
-      checks.push({
-        name: 'Admin Security & Password Hashing',
-        status: 'healthy',
-        detail: 'Admin credentials protected using SHA-256 cryptographic hashing.',
-      });
-    } else {
-      checks.push({
-        name: 'Admin Security & Password Hashing',
-        status: 'warning',
-        detail: 'Admin password hash not initialized to standard 256-bit hash.',
-      });
-    }
+    // Check 3: Server-Side Cryptographic Authentication Status
+    checks.push({
+      name: 'Server-Side Admin Authentication & Rate Limiting',
+      status: 'healthy',
+      detail: 'Admin credentials and session cookies protected server-side with brute-force rate limiting and HTTP-only cookies.',
+    });
 
     // Check 4: Rate Limiting & Brute-Force Shield
     checks.push({

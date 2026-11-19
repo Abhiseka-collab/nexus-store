@@ -1,32 +1,41 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
+import { PRODUCTS, PROMO_CODES } from '@/data/products';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { amount, currency = 'INR', receipt } = body || {};
+    const { productId, currency = 'INR', promoCode, receipt } = body || {};
 
-    // Validate amount: must be a positive finite number greater than zero
-    const numAmount = Number(amount);
-    if (!numAmount || isNaN(numAmount) || !isFinite(numAmount) || numAmount <= 0) {
-      return NextResponse.json(
-        { error: 'Invalid order amount: must be a positive number greater than zero.' },
-        { status: 400 }
-      );
+    // Validate currency
+    const safeCurrency =
+      typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency)
+        ? currency.toUpperCase()
+        : 'INR';
+
+    // Server-side authoritative price resolution to prevent client-side price tampering
+    const product = PRODUCTS.find((p) => p.id === productId) || PRODUCTS[0];
+    const basePrice =
+      safeCurrency === 'INR'
+        ? product.priceInr ?? 10
+        : product.price ?? 1;
+
+    // Server-side promo code validation
+    let discount = 0;
+    if (typeof promoCode === 'string') {
+      const cleanPromo = promoCode.trim().toUpperCase();
+      if (PROMO_CODES[cleanPromo]) {
+        discount = PROMO_CODES[cleanPromo];
+      }
     }
 
-    // Safety ceiling ($50,000 / ₹5,000,000 max single order)
-    if (numAmount > 50000) {
-      return NextResponse.json(
-        { error: 'Order amount exceeds transaction limit.' },
-        { status: 400 }
-      );
-    }
+    const calculatedPrice = Math.max(
+      safeCurrency === 'INR' ? 1 : 0.5,
+      Math.round(basePrice * (1 - discount) * 100) / 100
+    );
 
-    // Validate and sanitize currency code (3 uppercase alpha characters)
-    const safeCurrency = typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency)
-      ? currency.toUpperCase()
-      : 'INR';
+    // Calculate amount in lowest unit (paise / cents)
+    const amountInSmallestUnit = Math.round(calculatedPrice * 100);
 
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -35,15 +44,18 @@ export async function POST(req: Request) {
     if (!keyId || !keySecret) {
       if (process.env.NODE_ENV === 'production') {
         return NextResponse.json(
-          { error: 'Payment gateway configuration missing. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.' },
+          {
+            error:
+              'Payment gateway configuration missing. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.',
+          },
           { status: 500 }
         );
       }
       // Sandbox fallback response for local development without keys
       return NextResponse.json({
         mock: true,
-        orderId: `order_mock_${Date.now()}`,
-        amount: Math.round(numAmount * 100),
+        id: `order_mock_${Date.now()}`,
+        amount: amountInSmallestUnit,
         currency: safeCurrency,
         message: 'Razorpay keys not yet configured. Operating in local sandbox fallback mode.',
       });
@@ -55,7 +67,7 @@ export async function POST(req: Request) {
     });
 
     const options = {
-      amount: Math.round(numAmount * 100), // amount in lowest currency unit (paise / cents)
+      amount: amountInSmallestUnit,
       currency: safeCurrency,
       receipt: typeof receipt === 'string' ? receipt.slice(0, 40) : `rcpt_${Date.now()}`,
     };

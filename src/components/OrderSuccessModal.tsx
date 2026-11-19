@@ -42,10 +42,10 @@ export const OrderSuccessModal: React.FC = () => {
     const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '');
     if (!safeFilename) return;
 
-    // If delivering real spreadsheet asset
+    // If delivering real spreadsheet asset via secure signed token endpoint
     if (safeFilename.endsWith('.xlsx')) {
       const link = document.createElement('a');
-      link.href = `/downloads/${encodeURIComponent(safeFilename)}`;
+      link.href = `/api/download?orderId=${encodeURIComponent(latestOrder.id)}&token=${encodeURIComponent(latestOrder.downloadToken)}`;
       link.download = safeFilename;
       document.body.appendChild(link);
       link.click();

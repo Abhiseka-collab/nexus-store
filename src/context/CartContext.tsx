@@ -31,7 +31,7 @@ interface CartContextType {
   openCheckout: () => void;
   closeCheckout: () => void;
   closeSuccess: () => void;
-  completeOrder: (name: string, email: string) => Order;
+  completeOrder: (name: string, email: string, customOrderId?: string, customDownloadToken?: string) => Order;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -171,9 +171,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const total = Math.max(minFloor, Math.round((subtotal - discountAmount) * 100) / 100);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  const completeOrder = (customerName: string, customerEmail: string): Order => {
+  const completeOrder = (customerName: string, customerEmail: string, customOrderId?: string, customDownloadToken?: string): Order => {
+    const orderId = customOrderId || `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+    const token = customDownloadToken || `DL-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
     const order: Order = {
-      id: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
+      id: orderId,
       customerName,
       customerEmail,
       items: [...items],
@@ -189,7 +192,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hour: '2-digit',
         minute: '2-digit',
       }),
-      downloadToken: `DL-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+      downloadToken: token,
     };
 
     setLatestOrder(order);

@@ -79,11 +79,16 @@ export const CheckoutModal: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      // 1. Create order on server
+      const primaryItem = items[0];
+      // 1. Create order on server with authoritative server-side price resolution
       const res = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: chargeAmountInr, currency: 'INR' }),
+        body: JSON.stringify({
+          productId: primaryItem?.product.id || 'prod-personal-growth-system',
+          currency,
+          promoCode: appliedPromo || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -111,19 +116,33 @@ export const CheckoutModal: React.FC = () => {
           theme: {
             color: '#4f46e5',
           },
-          handler: (response: any) => {
-            // SEAMLESS INSTANT UNLOCK:
-            // Immediately complete order upon successful payment callback without blocking on verification checks!
-            completeOrder(customerName, customerEmail);
-            setIsProcessing(false);
-
-            // Silent asynchronous verification log in background (non-blocking)
-            if (response?.razorpay_payment_id) {
-              fetch('/api/razorpay/verify', {
+          handler: async (response: any) => {
+            try {
+              // Authoritative server-side verification before granting download access
+              const verifyRes = await fetch('/api/razorpay/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(response),
-              }).catch((e) => console.log('Silent verification log:', e));
+              });
+
+              const verifyData = await verifyRes.json();
+
+              if (!verifyRes.ok || !verifyData.verified) {
+                throw new Error(verifyData.error || 'Payment signature verification failed. Please contact support.');
+              }
+
+              // Verification succeeded! Complete order with the cryptographically signed downloadToken
+              completeOrder(
+                customerName,
+                customerEmail,
+                response.razorpay_order_id || orderData.id,
+                verifyData.downloadToken
+              );
+            } catch (vErr: any) {
+              console.error('Verification error:', vErr);
+              setErrorMessage(vErr?.message || 'Payment verification failed. Please contact support at solution00000@outlook.com.');
+            } finally {
+              setIsProcessing(false);
             }
           },
           modal: {
@@ -140,15 +159,33 @@ export const CheckoutModal: React.FC = () => {
         });
         rzp.open();
       } else {
-        // Instant Sandbox / Local Mode: Unlock files immediately without delay
-        setTimeout(() => {
-          completeOrder(customerName, customerEmail);
+        // Instant Sandbox / Local Mode: Request signed dev token from verify endpoint
+        try {
+          const mockOrderId = orderData.id || `order_mock_${Date.now()}`;
+          const mockVerifyRes = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: mockOrderId,
+              razorpay_payment_id: `pay_mock_${Date.now()}`,
+              razorpay_signature: 'sandbox_dev_mock_signature',
+            }),
+          });
+          const mockData = await mockVerifyRes.json();
+          completeOrder(
+            customerName,
+            customerEmail,
+            mockOrderId,
+            mockData.downloadToken
+          );
+        } catch {
+          completeOrder(customerName, customerEmail, orderData.id);
+        } finally {
           setIsProcessing(false);
-        }, 800);
+        }
       }
     } catch (err: any) {
       console.error('Checkout error:', err);
-      // In case of any network glitch with gateway, allow instant access so customer is never stuck
       setErrorMessage(err?.message || 'Unable to connect to payment gateway. Please try again.');
       setIsProcessing(false);
     }

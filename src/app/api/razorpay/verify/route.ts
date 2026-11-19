@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { generateDownloadToken } from '@/utils/tokens';
 
 export async function POST(req: Request) {
   try {
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         verified: true,
         mock: true,
+        downloadToken: generateDownloadToken(razorpay_order_id),
         message: 'Signature accepted in development fallback mode.',
       });
     }
@@ -44,7 +46,11 @@ export async function POST(req: Request) {
     const sigB = Buffer.from(razorpay_signature, 'utf8');
 
     if (sigA.length === sigB.length && crypto.timingSafeEqual(sigA, sigB)) {
-      return NextResponse.json({ verified: true });
+      const downloadToken = generateDownloadToken(razorpay_order_id);
+      return NextResponse.json({
+        verified: true,
+        downloadToken,
+      });
     } else {
       return NextResponse.json(
         { verified: false, error: 'Invalid Razorpay signature. Verification failed.' },

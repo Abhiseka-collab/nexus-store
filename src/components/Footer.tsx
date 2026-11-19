@@ -6,13 +6,38 @@ import { Zap, ShieldCheck, Heart, Send, Lock } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
+  const [honeypot, setHoneypot] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribeMessage, setSubscribeMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail('');
+    if (!email || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, hp_company: honeypot }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        setSubscribed(true);
+        setSubscribeMessage(data.message || '🎉 You are subscribed! Check your inbox soon.');
+        setEmail('');
+      } else {
+        setErrorMessage(data.error || 'Failed to subscribe. Please try again.');
+      }
+    } catch {
+      setErrorMessage('Network connection error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -94,25 +119,42 @@ export const Footer: React.FC = () => {
 
             {subscribed ? (
               <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium text-xs">
-                🎉 You are subscribed! Check your inbox for free gifts.
+                {subscribeMessage}
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="flex gap-2">
+              <form onSubmit={handleSubscribe} className="space-y-2">
+                {/* Honeypot field hidden from real humans */}
                 <input
-                  type="email"
-                  required
-                  placeholder="your.email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  type="text"
+                  name="hp_company"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  style={{ display: 'none' }}
+                  tabIndex={-1}
+                  autoComplete="off"
                 />
-                <button
-                  type="submit"
-                  className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center justify-center transition-colors shadow-sm"
-                  aria-label="Subscribe"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    placeholder="your.email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isSubmitting}
+                    className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold text-xs flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                    aria-label="Subscribe"
+                  >
+                    <Send className={`w-3.5 h-3.5 ${isSubmitting ? 'animate-pulse' : ''}`} />
+                  </button>
+                </div>
+                {errorMessage && (
+                  <p className="text-[11px] text-rose-500 dark:text-rose-400">{errorMessage}</p>
+                )}
               </form>
             )}
           </div>

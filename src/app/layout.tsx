@@ -14,9 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 const getBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  return "https://nexus-store.vercel.app";
+  return process.env.NEXT_PUBLIC_SITE_URL || "https://nexus-store.vercel.app";
 };
 
 const siteUrl = getBaseUrl();

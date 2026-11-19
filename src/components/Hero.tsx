@@ -86,25 +86,32 @@ export const Hero: React.FC = () => {
 
         {/* Launch Release & Fair Global Pricing Banner */}
         <div className="mt-10 max-w-lg mx-auto p-4 rounded-2xl bg-zinc-900/90 dark:bg-zinc-900/95 border border-indigo-500/30 shadow-xl backdrop-blur-md">
-          <div className="flex items-center justify-between text-xs mb-2">
+          <div className="flex items-center justify-between text-xs mb-2.5">
             <span className="font-bold text-indigo-300 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-              <span>Launch Release v2.4 • Early Adopter Pricing</span>
+              <span>Launch Release v2.4 • Early Adopter Tier</span>
             </span>
-            <span className="font-mono text-emerald-400 font-semibold text-[11px]">
-              84 / 100 Claimed
+            <span className="font-mono text-emerald-400 font-semibold text-[11px] flex items-center gap-1">
+              <span>●</span> Instant Delivery
             </span>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden relative">
-            <div
-              className="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full rounded-full transition-all duration-1000"
-              style={{ width: '84%' }}
-            />
+          {/* Value Highlights Feature Bar */}
+          <div className="w-full bg-zinc-800/80 px-3 py-2 rounded-xl border border-zinc-700/50 flex items-center justify-between text-[11px]">
+            <span className="flex items-center gap-1 text-indigo-300 font-medium">
+              <span className="text-emerald-400">✓</span> 16 Interconnected Tabs
+            </span>
+            <span className="text-zinc-600">•</span>
+            <span className="flex items-center gap-1 text-purple-300 font-medium">
+              <span className="text-emerald-400">✓</span> Excel & Sheets Ready
+            </span>
+            <span className="text-zinc-600">•</span>
+            <span className="flex items-center gap-1 text-emerald-300 font-medium">
+              <span className="text-emerald-400">✓</span> 100% Offline
+            </span>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-zinc-400 mt-2 font-mono">
+          <div className="flex items-center justify-between text-[11px] text-zinc-400 mt-2.5 font-mono">
             <span className="text-zinc-300">Fair Global Pricing: ₹10 (India) / $1 (Global)</span>
             <span className="text-zinc-500">Regular: ₹99 / $10</span>
           </div>
