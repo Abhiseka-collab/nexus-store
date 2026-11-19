@@ -22,6 +22,16 @@ export const CheckoutModal: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Auto-fill from browser storage if user previously typed it
+  React.useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem('nexus_customer_email');
+      const savedName = localStorage.getItem('nexus_customer_name');
+      if (savedEmail) setEmail(savedEmail);
+      if (savedName) setName(savedName);
+    } catch {}
+  }, []);
+
   if (!isCheckoutOpen) return null;
 
   // Charge amount in INR for Razorpay (minimum ₹1)
@@ -55,6 +65,11 @@ export const CheckoutModal: React.FC = () => {
       setErrorMessage('Please enter a valid email address so we can send your download link.');
       return;
     }
+
+    try {
+      localStorage.setItem('nexus_customer_email', cleanEmail);
+      if (name) localStorage.setItem('nexus_customer_name', name);
+    } catch {}
 
     await handlePaymentFlow(cleanName, cleanEmail);
   };
@@ -198,13 +213,19 @@ export const CheckoutModal: React.FC = () => {
 
           {/* Email Input */}
           <div>
-            <label className="text-xs font-bold text-zinc-900 dark:text-white block mb-1.5">
+            <label htmlFor="checkout-email" className="text-xs font-bold text-zinc-900 dark:text-white block mb-1.5">
               Where should we send your backup link?
             </label>
             <input
+              id="checkout-email"
+              name="email"
               type="email"
               required
               autoFocus
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -217,11 +238,14 @@ export const CheckoutModal: React.FC = () => {
 
           {/* Optional Name */}
           <div>
-            <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
+            <label htmlFor="checkout-name" className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
               Your Name (Optional)
             </label>
             <input
+              id="checkout-name"
+              name="name"
               type="text"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name or handle"
