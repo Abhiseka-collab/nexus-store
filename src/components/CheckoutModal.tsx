@@ -132,12 +132,27 @@ export const CheckoutModal: React.FC = () => {
               }
 
               // Verification succeeded! Complete order with the cryptographically signed downloadToken
+              const finalOrderId = response.razorpay_order_id || orderData.id;
               completeOrder(
                 customerName,
                 customerEmail,
-                response.razorpay_order_id || orderData.id,
+                finalOrderId,
                 verifyData.downloadToken
               );
+
+              // Asynchronously trigger automated order confirmation & receipt email
+              fetch('/api/order/email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: finalOrderId,
+                  customerName,
+                  customerEmail,
+                  downloadToken: verifyData.downloadToken,
+                  total,
+                  currency,
+                }),
+              }).catch(() => {});
             } catch (vErr: any) {
               console.error('Verification error:', vErr);
               setErrorMessage(vErr?.message || 'Payment verification failed. Please contact support at solution00000@outlook.com.');
@@ -178,6 +193,20 @@ export const CheckoutModal: React.FC = () => {
             mockOrderId,
             mockData.downloadToken
           );
+
+          // Asynchronously trigger automated order confirmation & receipt email
+          fetch('/api/order/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: mockOrderId,
+              customerName,
+              customerEmail,
+              downloadToken: mockData.downloadToken,
+              total,
+              currency,
+            }),
+          }).catch(() => {});
         } catch {
           completeOrder(customerName, customerEmail, orderData.id);
         } finally {

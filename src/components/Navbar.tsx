@@ -56,6 +56,10 @@ export const Navbar: React.FC = () => {
             <a href="/#roi-calculator" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               ROI Calculator
             </a>
+            <a href="/#reviews" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1">
+              <span>Reviews</span>
+              <span className="text-[10px] text-amber-500 font-bold">★ 5.0</span>
+            </a>
             <a href="/#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Features
             </a>

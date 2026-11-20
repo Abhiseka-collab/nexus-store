@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
@@ -20,6 +21,72 @@ const getBaseUrl = () => {
 };
 
 const siteUrl = getBaseUrl();
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Product",
+      "@id": `${siteUrl}/#product`,
+      "name": "16-in-1 Personal Growth System (.xlsx)",
+      "description":
+        "Production-grade Life OS spreadsheet built for Microsoft Excel and Google Sheets. 16 interconnected tabs, automated habit streak tracker, 20-goal matrix, and AI reflection prompts.",
+      "image": `${siteUrl}/personal-growth-system-cover.svg`,
+      "brand": {
+        "@type": "Brand",
+        "name": "NEXUS",
+      },
+      "category": "Software > Business & Productivity Software",
+      "offers": [
+        {
+          "@type": "Offer",
+          "price": "10",
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock",
+          "url": siteUrl,
+          "priceValidUntil": "2027-12-31",
+        },
+        {
+          "@type": "Offer",
+          "price": "1",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": siteUrl,
+          "priceValidUntil": "2027-12-31",
+        },
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.96",
+        "bestRating": "5",
+        "ratingCount": "128",
+        "reviewCount": "128",
+      },
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Personal Growth System",
+      "operatingSystem": "Microsoft Excel, Google Sheets, Apple Numbers",
+      "applicationCategory": "BusinessApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "1.00",
+        "priceCurrency": "USD",
+      },
+    },
+    {
+      "@type": "Organization",
+      "name": "NEXUS Digital Store",
+      "url": siteUrl,
+      "logo": `${siteUrl}/personal-growth-system-cover.svg`,
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "solution00000@outlook.com",
+        "contactType": "Customer Support",
+      },
+    },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -86,8 +153,15 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth dark`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );

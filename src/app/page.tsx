@@ -9,6 +9,7 @@ import { SpreadsheetShowcase } from '@/components/SpreadsheetShowcase';
 import { UnboxingCard } from '@/components/UnboxingCard';
 import { ChaosVsFlow } from '@/components/ChaosVsFlow';
 import { RoiCalculator } from '@/components/RoiCalculator';
+import { Testimonials } from '@/components/Testimonials';
 import { HowItWorks } from '@/components/HowItWorks';
 import { FaqSection } from '@/components/FaqSection';
 import { Footer } from '@/components/Footer';
@@ -39,6 +40,7 @@ export default function Home() {
         <UnboxingCard />
         <ChaosVsFlow />
         <RoiCalculator />
+        <Testimonials />
         <HowItWorks />
         <FaqSection />
       </main>
