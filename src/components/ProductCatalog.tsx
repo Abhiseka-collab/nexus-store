@@ -5,25 +5,21 @@ import { Search, X, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { ProductCard } from '@/components/ProductCard';
 
-const CATEGORIES = [
-  'All Products',
-  'Spreadsheets & Systems',
-  'Notion Templates',
-  'Design & 3D',
-  'E-Books & Guides',
-  'Developer Kits',
-] as const;
-
 export const ProductCatalog: React.FC = () => {
   const { products } = useStore();
-  const [selectedCategory, setSelectedCategory] = useState<string>('All Products');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All Systems');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'newest'>('featured');
+
+  const categories = useMemo(() => {
+    const unique = Array.from(new Set(products.map((p) => p.category))).filter(Boolean);
+    return ['All Systems', ...unique];
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchesCategory =
-        selectedCategory === 'All Products' || product.category === selectedCategory;
+        selectedCategory === 'All Systems' || product.category === selectedCategory;
 
       const matchesSearch =
         searchQuery === '' ||
@@ -38,7 +34,7 @@ export const ProductCatalog: React.FC = () => {
       if (sortBy === 'price-desc') return b.price - a.price;
       return 0; // Default featured & newest
     });
-  }, [selectedCategory, searchQuery, sortBy]);
+  }, [products, selectedCategory, searchQuery, sortBy]);
 
   return (
     <section id="products" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -102,9 +98,9 @@ export const ProductCatalog: React.FC = () => {
 
         {/* Category Pill Buttons */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const count =
-              cat === 'All Products'
+              cat === 'All Systems'
                 ? products.length
                 : products.filter((p) => p.category === cat).length;
             const isSelected = selectedCategory === cat;

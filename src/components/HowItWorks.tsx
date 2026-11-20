@@ -25,7 +25,7 @@ const STEPS = [
   {
     step: '04',
     title: 'Free Lifetime Updates',
-    desc: 'Whenever assets receive updates, new Figma components, or Next.js version bumps, re-download the latest release at zero extra cost.',
+    desc: 'Whenever the system receives updates, new automated tab templates, or 2026/2027 goal frameworks, re-download the latest release at zero extra cost.',
     icon: Sparkles,
   },
 ];

@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     q: 'What if I need updates when new versions are released?',
-    a: 'All purchases include free lifetime updates. Whenever Notion updates their database features, Figma updates auto-layout, or Next.js releases major upgrades, we update the assets and you can re-download the newest version at zero additional cost.',
+    a: 'All purchases include free lifetime updates. Whenever Excel releases formula updates, Google Sheets introduces new features, or we release new tab extensions for the Personal Growth System, you can re-download the newest version at zero additional cost.',
   },
   {
     q: 'What is your refund policy?',
