@@ -98,7 +98,7 @@ export const CheckoutModal: React.FC = () => {
 
       const orderData = await res.json();
       const scriptLoaded = await loadRazorpayScript();
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      const razorpayKey = orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
       // 2. Open official Razorpay modal
       if (scriptLoaded && razorpayKey && (window as any).Razorpay && !orderData.mock) {
