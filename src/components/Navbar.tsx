@@ -63,6 +63,10 @@ export const Navbar: React.FC = () => {
             <a href="/#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Features
             </a>
+            <a href="/#community" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1">
+              <span>Channels</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+            </a>
             <a href="/#faq" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               FAQ
             </a>

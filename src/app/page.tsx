@@ -11,6 +11,7 @@ import { ChaosVsFlow } from '@/components/ChaosVsFlow';
 import { RoiCalculator } from '@/components/RoiCalculator';
 import { Testimonials } from '@/components/Testimonials';
 import { HowItWorks } from '@/components/HowItWorks';
+import { CommunityChannels } from '@/components/CommunityChannels';
 import { FaqSection } from '@/components/FaqSection';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -18,6 +19,7 @@ import { ProductModal } from '@/components/ProductModal';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { OrderSuccessModal } from '@/components/OrderSuccessModal';
 import { ActivityToast } from '@/components/ActivityToast';
+import { MobileStickyBar } from '@/components/MobileStickyBar';
 
 export default function Home() {
   const { recordVisit } = useStore();
@@ -42,6 +44,7 @@ export default function Home() {
         <RoiCalculator />
         <Testimonials />
         <HowItWorks />
+        <CommunityChannels />
         <FaqSection />
       </main>
 
@@ -54,6 +57,7 @@ export default function Home() {
       <CheckoutModal />
       <OrderSuccessModal />
       <ActivityToast />
+      <MobileStickyBar />
     </div>
   );
 }
