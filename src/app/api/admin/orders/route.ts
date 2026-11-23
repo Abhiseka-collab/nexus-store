@@ -16,8 +16,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const rawKeyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+    const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
+    const keyId = rawKeyId.trim().replace(/^["']|["']$/g, '');
+    const keySecret = rawKeySecret.trim().replace(/^["']|["']$/g, '');
 
     if (!keyId || !keySecret) {
       return NextResponse.json({
@@ -25,7 +28,7 @@ export async function GET(req: NextRequest) {
         configured: false,
         count: 0,
         orders: [],
-        message: 'Razorpay API credentials not configured in environment variables.',
+        warning: 'Razorpay API credentials not configured in environment variables.',
       });
     }
 
@@ -95,12 +98,17 @@ export async function GET(req: NextRequest) {
       throw error;
     }
     console.error('Error fetching real orders from Razorpay:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || 'Failed to fetch orders from Razorpay gateway.',
-      },
-      { status: 500 }
-    );
+    const description =
+      error?.error?.description ||
+      error?.message ||
+      'Unable to connect to Razorpay API. Verify key and secret in Vercel settings.';
+
+    return NextResponse.json({
+      success: true,
+      configured: true,
+      count: 0,
+      orders: [],
+      warning: description,
+    });
   }
 }

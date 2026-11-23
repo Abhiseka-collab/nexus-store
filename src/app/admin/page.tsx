@@ -77,7 +77,7 @@ export default function AdminPage() {
 
   // Gateway Sync State
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncFeedback, setSyncFeedback] = useState<{ message: string; error?: boolean } | null>(null);
+  const [syncFeedback, setSyncFeedback] = useState<{ message: string; type?: 'error' | 'warning' | 'success' } | null>(null);
 
   // Orders State
   const [orderSearch, setOrderSearch] = useState('');
@@ -149,43 +149,61 @@ export default function AdminPage() {
   }, [isAdminAuthenticated, lockoutRemainingSeconds, loginAdmin]);
 
   // Sync real orders directly from Razorpay payment gateway
-  const handleSyncOrders = React.useCallback(async () => {
+  const handleSyncOrders = React.useCallback(async (isManual: boolean = false) => {
     setIsSyncing(true);
-    setSyncFeedback(null);
+    if (isManual) {
+      setSyncFeedback(null);
+    }
     try {
       const res = await fetch('/api/admin/orders');
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setSyncFeedback({
-          message: data.error || 'Failed to sync with Razorpay gateway.',
-          error: true,
-        });
+        if (isManual) {
+          setSyncFeedback({
+            message: data.error || 'Failed to sync with Razorpay gateway.',
+            type: 'error',
+          });
+        }
       } else {
         if (Array.isArray(data.orders)) {
           mergeSyncedOrders(data.orders);
+        }
+        if (data.warning) {
+          if (isManual) {
+            setSyncFeedback({
+              message: `Gateway Sync: ${data.warning}`,
+              type: 'warning',
+            });
+          }
+        } else if (isManual) {
           setSyncFeedback({
             message:
               data.count > 0
                 ? `Successfully synced ${data.count} captured payment(s) from Razorpay!`
                 : 'Gateway connected: 0 payments found on Razorpay account.',
+            type: 'success',
           });
         }
       }
     } catch {
-      setSyncFeedback({
-        message: 'Network error connecting to payment sync endpoint.',
-        error: true,
-      });
+      if (isManual) {
+        setSyncFeedback({
+          message: 'Network error connecting to payment sync endpoint.',
+          type: 'error',
+        });
+      }
     } finally {
       setIsSyncing(false);
-      setTimeout(() => setSyncFeedback(null), 4000);
+      if (isManual) {
+        setTimeout(() => setSyncFeedback(null), 6000);
+      }
     }
   }, [mergeSyncedOrders]);
 
-  // Auto-sync live orders once logged in
+  // Auto-sync live orders quietly once logged in
   React.useEffect(() => {
     if (isAdminAuthenticated) {
-      handleSyncOrders();
+      handleSyncOrders(false);
     }
   }, [isAdminAuthenticated, handleSyncOrders]);
 
@@ -392,7 +410,7 @@ export default function AdminPage() {
   };
 
   const handleCopyCustomerDownload = (order: (typeof orders)[0]) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nexus-store-5s8orsfkz-abhi-4d1e.vercel.app';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nexus-store-woad.vercel.app';
     const link = `${origin}/downloads/Personal_Growth_System.xlsx?order=${order.id}&token=${order.downloadToken}`;
     navigator.clipboard.writeText(link);
     setCopiedLink(order.id);
@@ -400,7 +418,7 @@ export default function AdminPage() {
   };
 
   const handleEmailCustomerReceipt = (order: (typeof orders)[0]) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nexus-store-5s8orsfkz-abhi-4d1e.vercel.app';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nexus-store-woad.vercel.app';
     const link = `${origin}/downloads/Personal_Growth_System.xlsx?order=${order.id}&token=${order.downloadToken}`;
     const subject = encodeURIComponent(`NEXUS Delivery: Your Personal Growth System Download (Order #${order.id})`);
     const body = encodeURIComponent(
@@ -571,7 +589,7 @@ export default function AdminPage() {
             {/* Quick Action Badges */}
             <div className="flex flex-wrap items-center gap-2">
               <button
-                onClick={handleSyncOrders}
+                onClick={() => handleSyncOrders(true)}
                 disabled={isSyncing}
                 className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 transition-all cursor-pointer disabled:opacity-50"
                 title="Fetch live captured payments from Razorpay"
@@ -608,14 +626,32 @@ export default function AdminPage() {
 
           {syncFeedback && (
             <div
-              className={`mb-4 px-3.5 py-2 rounded-xl text-xs font-medium border flex items-center gap-2 animate-fade-in ${
-                syncFeedback.error
+              className={`mb-4 px-3.5 py-2.5 rounded-xl text-xs font-medium border flex items-center justify-between gap-3 animate-fade-in ${
+                syncFeedback.type === 'error'
                   ? 'bg-rose-950/40 border-rose-800/50 text-rose-300'
+                  : syncFeedback.type === 'warning'
+                  ? 'bg-amber-950/40 border-amber-800/50 text-amber-300'
                   : 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300'
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>{syncFeedback.message}</span>
+              <div className="flex items-center gap-2">
+                {syncFeedback.type === 'error' ? (
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                ) : syncFeedback.type === 'warning' ? (
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                )}
+                <span>{syncFeedback.message}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSyncFeedback(null)}
+                className="text-zinc-400 hover:text-white text-xs px-1.5 py-0.5 rounded cursor-pointer"
+                title="Dismiss"
+              >
+                ✕
+              </button>
             </div>
           )}
 
@@ -715,18 +751,6 @@ export default function AdminPage() {
           >
             <Settings className="w-4 h-4" />
             <span>Store Configuration</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeTab === 'orders'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800'
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span>Orders Received ({orders.length})</span>
           </button>
 
           <button
@@ -1302,7 +1326,7 @@ export default function AdminPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleSyncOrders}
+                  onClick={() => handleSyncOrders(true)}
                   disabled={isSyncing}
                   className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 border border-zinc-700 shadow-md transition-all cursor-pointer disabled:opacity-50"
                   title="Fetch live captured payments from Razorpay"

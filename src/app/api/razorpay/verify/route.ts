@@ -19,7 +19,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
+    const keySecret = rawKeySecret.trim().replace(/^["']|["']$/g, '');
 
     // Fail closed in production if secret is missing
     if (!keySecret) {

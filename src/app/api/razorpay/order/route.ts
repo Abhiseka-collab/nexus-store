@@ -37,8 +37,11 @@ export async function POST(req: Request) {
     // Calculate amount in lowest unit (paise / cents)
     const amountInSmallestUnit = Math.round(calculatedPrice * 100);
 
-    const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const rawKeyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+    const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
+    const keyId = rawKeyId.trim().replace(/^["']|["']$/g, '');
+    const keySecret = rawKeySecret.trim().replace(/^["']|["']$/g, '');
 
     // In production, missing credentials must fail closed
     if (!keyId || !keySecret) {
