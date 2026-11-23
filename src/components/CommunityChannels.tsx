@@ -5,7 +5,7 @@ import { ExternalLink, Video, Sparkles, MessageCircle, ArrowRight } from 'lucide
 
 interface Channel {
   name: string;
-  platform: 'YouTube' | 'Instagram' | 'X (Twitter)';
+  platform: 'YouTube' | 'Instagram';
   handle: string;
   description: string;
   badge: string;
@@ -48,22 +48,6 @@ const CHANNELS: Channel[] = [
       </svg>
     ),
   },
-  {
-    name: '@nexus_growth',
-    platform: 'X (Twitter)',
-    handle: '@nexus_growth',
-    description:
-      'High-signal productivity breakdowns, build-in-public metrics, Excel automation tips, and direct creator updates.',
-    badge: 'Insights & Updates',
-    url: 'https://x.com',
-    color: 'from-sky-500/20 to-blue-500/10 border-sky-500/30 text-sky-400',
-    btnText: 'Follow on X',
-    iconSvg: (
-      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-      </svg>
-    ),
-  },
 ];
 
 export const CommunityChannels: React.FC = () => {
@@ -81,12 +65,12 @@ export const CommunityChannels: React.FC = () => {
             Follow Our Channels for Free Tutorials & Drop Updates
           </h2>
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            Get spreadsheet walkthroughs on YouTube, daily habit prompts on Instagram, and direct creator announcements on X.
+            Get spreadsheet walkthroughs on YouTube and daily habit accountability prompts on Instagram.
           </p>
         </div>
 
-        {/* 3 Channel Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        {/* Official Channel Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {CHANNELS.map((ch) => (
             <div
               key={ch.platform}
