@@ -19,11 +19,11 @@ const CHANNELS: Channel[] = [
   {
     name: 'NEXUS Studio',
     platform: 'YouTube',
-    handle: '@nexusdigitalstore',
+    handle: '@__NEXUS',
     description:
       'Step-by-step spreadsheet tutorials, habit streak guides, and deep-dive walkthroughs of the 16-in-1 Personal Growth System.',
     badge: 'Video Masterclasses',
-    url: 'https://youtube.com',
+    url: 'https://www.youtube.com/channel/UCW1WS0KvSlQsmQ4w6FmZu_w',
     color: 'from-rose-500/20 to-red-500/10 border-red-500/30 text-rose-500',
     btnText: 'Subscribe on YouTube',
     iconSvg: (
@@ -33,13 +33,13 @@ const CHANNELS: Channel[] = [
     ),
   },
   {
-    name: 'nexus.growth',
+    name: 'nexu.s2207',
     platform: 'Instagram',
-    handle: '@nexus.growth',
+    handle: '@nexu.s2207',
     description:
       'Daily habit accountability prompts, productivity reels, streak motivation, and early-bird discount codes for new drops.',
     badge: 'Daily Reels & Tips',
-    url: 'https://instagram.com',
+    url: 'https://www.instagram.com/nexu.s2207',
     color: 'from-fuchsia-500/20 to-pink-500/10 border-pink-500/30 text-pink-500',
     btnText: 'Follow on Instagram',
     iconSvg: (
@@ -145,7 +145,7 @@ export const CommunityChannels: React.FC = () => {
             </div>
           </div>
           <a
-            href="https://youtube.com"
+            href="https://www.youtube.com/channel/UCW1WS0KvSlQsmQ4w6FmZu_w"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-sm"

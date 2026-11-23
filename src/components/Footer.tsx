@@ -67,11 +67,11 @@ export const Footer: React.FC = () => {
             {/* Social Channels */}
             <div className="pt-1 flex items-center gap-2">
               <a
-                href="https://youtube.com"
+                href="https://www.youtube.com/channel/UCW1WS0KvSlQsmQ4w6FmZu_w"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-rose-500 hover:border-rose-500/40 transition-colors"
-                title="Watch Tutorials on YouTube"
+                title="Watch Tutorials on YouTube (@__NEXUS)"
                 aria-label="YouTube"
               >
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
@@ -80,11 +80,11 @@ export const Footer: React.FC = () => {
               </a>
 
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/nexu.s2207"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-pink-500 hover:border-pink-500/40 transition-colors"
-                title="Follow on Instagram"
+                title="Follow on Instagram (@nexu.s2207)"
                 aria-label="Instagram"
               >
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
