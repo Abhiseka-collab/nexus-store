@@ -1,52 +1,55 @@
-import { TrafficEvent, AnalyticsSummary, TimePoint } from '@/types/store';
+import { TrafficEvent, AnalyticsSummary, TimePoint, FunnelStats } from '@/types/store';
 import { Order } from '@/types/product';
 
 // Safe baseline timestamp for SSR hydration consistency
 const SSR_BASE_TIME = 1773993600000;
 
-export function generateSeedTraffic(baseTime = SSR_BASE_TIME): TrafficEvent[] {
-  const events: TrafficEvent[] = [];
-  const now = typeof window !== 'undefined' ? Date.now() : baseTime;
-  const dayMs = 24 * 60 * 60 * 1000;
-  const referrers: TrafficEvent['referrer'][] = [
-    'Google Search',
-    'X / Twitter',
-    'Direct',
-    'Instagram',
-    'YouTube',
-    'Reddit',
-  ];
-  const devices: TrafficEvent['device'][] = ['Desktop', 'Mobile', 'Mobile', 'Tablet'];
-
-  for (let d = 29; d >= 0; d--) {
-    const dayTimestamp = now - d * dayMs;
-    const dateObj = new Date(dayTimestamp);
-    const dateStr = dateObj.toISOString().slice(0, 10);
-    const dayFactor = d === 0 ? 35 : Math.floor(45 + Math.sin(d) * 25 + (30 - d) * 1.5);
-
-    for (let i = 0; i < dayFactor; i++) {
-      const isUnique = Math.random() > 0.35;
-      const ref = referrers[Math.floor(Math.random() * referrers.length)];
-      const dev = devices[Math.floor(Math.random() * devices.length)];
-
-      events.push({
-        id: `vis-${dayTimestamp}-${i}`,
-        timestamp: dayTimestamp + Math.floor(Math.random() * dayMs),
-        dateStr,
-        isUnique,
-        referrer: ref,
-        device: dev,
-      });
-    }
-  }
-
-  return events;
+/**
+ * Filter out legacy synthetic seed events.
+ * Genuine visits recorded by recordVisit() have IDs starting with 'ev-'.
+ */
+export function filterRealTrafficEvents(events: unknown[]): TrafficEvent[] {
+  if (!Array.isArray(events)) return [];
+  return events.filter(
+    (e): e is TrafficEvent =>
+      typeof e === 'object' &&
+      e !== null &&
+      'id' in e &&
+      typeof (e as any).id === 'string' &&
+      (e as any).id.startsWith('ev-') &&
+      'timestamp' in e &&
+      typeof (e as any).timestamp === 'number'
+  );
 }
 
+/**
+ * Empty baseline generator to replace mock data with clean real analytics.
+ * Returns empty array so no synthetic visits deceive the store owner.
+ */
+export function generateSeedTraffic(): TrafficEvent[] {
+  return [];
+}
+
+/**
+ * Resolves the numeric epoch timestamp of an order.
+ */
+export function getOrderTimestamp(order: Order): number {
+  if (typeof order.timestamp === 'number' && !isNaN(order.timestamp)) {
+    return order.timestamp;
+  }
+  const parsed = Date.parse(order.createdAt);
+  return isNaN(parsed) ? Date.now() : parsed;
+}
+
+/**
+ * Computes 100% genuine analytics strictly from real traffic events and real customer orders.
+ * Zero mock baseline revenue, zero fake orders, zero synthetic curve points.
+ */
 export function computeAnalytics(
   events: TrafficEvent[],
   orders: Order[],
-  timeframe: 'day' | 'week' | 'month'
+  timeframe: 'day' | 'week' | 'month',
+  funnel?: FunnelStats
 ): AnalyticsSummary {
   const now = typeof window !== 'undefined' ? Date.now() : SSR_BASE_TIME;
   const dayMs = 24 * 60 * 60 * 1000;
@@ -55,61 +58,109 @@ export function computeAnalytics(
   if (timeframe === 'week') cutoff = now - 7 * dayMs;
   if (timeframe === 'month') cutoff = now - 30 * dayMs;
 
+  // Filter ONLY real active events within the timeframe
   const activeEvents = events.filter((e) => e.timestamp >= cutoff);
   const totalVisits = activeEvents.length;
   const uniqueVisitors = activeEvents.filter((e) => e.isUnique).length;
 
-  const baselineOrders = Math.floor(totalVisits * 0.038);
-  const realOrdersCount = orders.length;
-  const totalOrders = Math.max(1, baselineOrders + realOrdersCount);
+  // Filter ONLY real orders within the timeframe
+  const activeOrders = orders.filter((o) => getOrderTimestamp(o) >= cutoff);
+  const totalOrders = activeOrders.length;
+  const totalRevenue = Math.round(
+    activeOrders.reduce((sum, o) => sum + (typeof o.total === 'number' ? o.total : 0), 0) * 100
+  ) / 100;
 
-  const realOrdersRevenue = orders.reduce((sum, o) => sum + o.total, 0);
-  const baselineRevenue = baselineOrders * 44;
-  const totalRevenue = Math.round((realOrdersRevenue + baselineRevenue) * 100) / 100;
+  const conversionRate =
+    totalVisits > 0 ? Math.round((totalOrders / totalVisits) * 1000) / 10 : 0;
+  const avgOrderValue =
+    totalOrders > 0 ? Math.round((totalRevenue / totalOrders) * 100) / 100 : 0;
 
-  const conversionRate = totalVisits > 0 ? Math.round((totalOrders / totalVisits) * 1000) / 10 : 0;
-  const avgOrderValue = totalOrders > 0 ? Math.round((totalRevenue / totalOrders) * 100) / 100 : 0;
-
+  // Group real events and orders into real timeline buckets
   const timeline: TimePoint[] = [];
 
   if (timeframe === 'day') {
-    const slots = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
-    slots.forEach((label, idx) => {
-      const slotVisits = Math.max(2, Math.round((totalVisits / 8) + (idx % 3 === 0 ? 4 : -2)));
-      const slotOrders = Math.max(0, Math.round(slotVisits * 0.04));
+    // 8 3-hour slots for the past 24 hours ending at now
+    const slotDuration = 3 * 60 * 60 * 1000;
+    for (let i = 7; i >= 0; i--) {
+      const slotStart = now - (i + 1) * slotDuration;
+      const slotEnd = now - i * slotDuration;
+      const slotDate = new Date(slotEnd);
+      const label = slotDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+      const slotVisits = activeEvents.filter(
+        (e) => e.timestamp >= slotStart && e.timestamp < slotEnd
+      ).length;
+      const slotOrderItems = activeOrders.filter((o) => {
+        const ts = getOrderTimestamp(o);
+        return ts >= slotStart && ts < slotEnd;
+      });
+      const slotRevenue =
+        Math.round(slotOrderItems.reduce((sum, o) => sum + o.total, 0) * 100) / 100;
+
       timeline.push({
         label,
         visits: slotVisits,
-        orders: slotOrders,
-        revenue: slotOrders * avgOrderValue,
+        orders: slotOrderItems.length,
+        revenue: slotRevenue,
       });
-    });
+    }
   } else if (timeframe === 'week') {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    days.forEach((label, idx) => {
-      const dayVisits = Math.max(12, Math.round((totalVisits / 7) + (idx > 3 ? 15 : -8)));
-      const dayOrders = Math.max(0, Math.round(dayVisits * 0.04));
+    // 7 days ending today
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(now - i * dayMs);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart.getTime() + dayMs);
+      const label = dayStart.toLocaleDateString('en-US', { weekday: 'short' });
+
+      const dayVisits = activeEvents.filter(
+        (e) => e.timestamp >= dayStart.getTime() && e.timestamp < dayEnd.getTime()
+      ).length;
+      const dayOrderItems = activeOrders.filter((o) => {
+        const ts = getOrderTimestamp(o);
+        return ts >= dayStart.getTime() && ts < dayEnd.getTime();
+      });
+      const dayRevenue =
+        Math.round(dayOrderItems.reduce((sum, o) => sum + o.total, 0) * 100) / 100;
+
       timeline.push({
         label,
         visits: dayVisits,
-        orders: dayOrders,
-        revenue: dayOrders * avgOrderValue,
+        orders: dayOrderItems.length,
+        revenue: dayRevenue,
       });
-    });
+    }
   } else {
-    const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-    weeks.forEach((label, idx) => {
-      const weekVisits = Math.max(60, Math.round((totalVisits / 4) + (idx * 25 - 15)));
-      const weekOrders = Math.max(1, Math.round(weekVisits * 0.04));
+    // 4 weeks (7 days each)
+    const weekDuration = 7 * dayMs;
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = now - (i + 1) * weekDuration;
+      const weekEnd = now - i * weekDuration;
+      const label = `Week ${4 - i}`;
+
+      const weekVisits = activeEvents.filter(
+        (e) => e.timestamp >= weekStart && e.timestamp < weekEnd
+      ).length;
+      const weekOrderItems = activeOrders.filter((o) => {
+        const ts = getOrderTimestamp(o);
+        return ts >= weekStart && ts < weekEnd;
+      });
+      const weekRevenue =
+        Math.round(weekOrderItems.reduce((sum, o) => sum + o.total, 0) * 100) / 100;
+
       timeline.push({
         label,
         visits: weekVisits,
-        orders: weekOrders,
-        revenue: weekOrders * avgOrderValue,
+        orders: weekOrderItems.length,
+        revenue: weekRevenue,
       });
-    });
+    }
   }
 
+  // Count genuine referrers
   const refCounts: Record<string, number> = {};
   activeEvents.forEach((e) => {
     refCounts[e.referrer] = (refCounts[e.referrer] || 0) + 1;
@@ -123,6 +174,11 @@ export function computeAnalytics(
     }))
     .sort((a, b) => b.count - a.count);
 
+  const baseVisits = Math.max(totalVisits, funnel?.visits || 0);
+  const previews = funnel?.previews || 0;
+  const checkouts = funnel?.checkouts || 0;
+  const ordersCompleted = Math.max(totalOrders, funnel?.orders || 0);
+
   return {
     totalVisits,
     uniqueVisitors,
@@ -131,11 +187,18 @@ export function computeAnalytics(
     conversionRate,
     avgOrderValue,
     timeline,
-    referrers: referrers.length > 0 ? referrers : [
-      { name: 'Google Search', count: 42, percentage: 38 },
-      { name: 'X / Twitter', count: 32, percentage: 29 },
-      { name: 'Direct', count: 21, percentage: 19 },
-      { name: 'Instagram', count: 15, percentage: 14 },
-    ],
+    referrers,
+    funnel: {
+      visits: baseVisits,
+      previewClicks: previews,
+      previewRate:
+        baseVisits > 0 ? Math.min(100, Math.round((previews / baseVisits) * 1000) / 10) : 0,
+      checkoutOpens: checkouts,
+      checkoutRate:
+        baseVisits > 0 ? Math.min(100, Math.round((checkouts / baseVisits) * 1000) / 10) : 0,
+      ordersCompleted,
+      orderRate:
+        baseVisits > 0 ? Math.min(100, Math.round((ordersCompleted / baseVisits) * 1000) / 10) : 0,
+    },
   };
 }

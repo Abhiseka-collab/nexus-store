@@ -1,5 +1,3 @@
-import { Product, Order } from './product';
-
 export interface StoreSettings {
   storeName: string;
   storeTagline: string;
@@ -34,6 +32,13 @@ export interface TimePoint {
   revenue: number;
 }
 
+export interface FunnelStats {
+  visits: number;
+  previews: number;
+  checkouts: number;
+  orders: number;
+}
+
 export interface AnalyticsSummary {
   totalVisits: number;
   uniqueVisitors: number;
@@ -43,4 +48,13 @@ export interface AnalyticsSummary {
   avgOrderValue: number;  // e.g. $42.50
   timeline: TimePoint[];
   referrers: Array<{ name: string; count: number; percentage: number }>;
+  funnel: {
+    visits: number;
+    previewClicks: number;
+    previewRate: number;
+    checkoutOpens: number;
+    checkoutRate: number;
+    ordersCompleted: number;
+    orderRate: number;
+  };
 }

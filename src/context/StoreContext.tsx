@@ -2,9 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Order } from '@/types/product';
-import { StoreSettings, SystemLog, TrafficEvent, AnalyticsSummary } from '@/types/store';
+import { StoreSettings, SystemLog, TrafficEvent, AnalyticsSummary, FunnelStats } from '@/types/store';
 import { PRODUCTS } from '@/data/products';
-import { generateSeedTraffic, computeAnalytics } from '@/utils/traffic';
+import { filterRealTrafficEvents, computeAnalytics } from '@/utils/traffic';
 import {
   sanitizePrice,
   sanitizeText,
@@ -71,6 +71,10 @@ interface StoreContextType {
   addProduct: (product: Omit<Product, 'id'>) => Product;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+  funnel: FunnelStats;
+  recordPreview: () => void;
+  recordCheckoutStep: () => void;
+  mergeSyncedOrders: (synced: Order[]) => void;
   updateSettings: (updates: Partial<StoreSettings>) => void;
   recordOrder: (order: Order) => void;
   recordVisit: (referrer?: string) => void;
@@ -97,6 +101,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [promos, setPromos] = useState<PromoCodeItem[]>(DEFAULT_PROMOS);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [trafficEvents, setTrafficEvents] = useState<TrafficEvent[]>([]);
+  const [funnel, setFunnel] = useState<FunnelStats>({
+    visits: 0,
+    previews: 0,
+    checkouts: 0,
+    orders: 0,
+  });
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [failedAttempts, setFailedAttempts] = useState<number>(0);
   const [lockoutUntil, setLockoutUntil] = useState<number>(0);
@@ -213,14 +223,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const storedTraffic = localStorage.getItem('nexus_traffic');
       if (storedTraffic) {
-        const parsed = JSON.parse(storedTraffic);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTrafficEvents(parsed);
-        } else {
-          setTrafficEvents(generateSeedTraffic());
+        try {
+          const parsed = JSON.parse(storedTraffic);
+          const realEvents = filterRealTrafficEvents(parsed);
+          setTrafficEvents(realEvents);
+          safeSetItem('nexus_traffic', JSON.stringify(realEvents));
+        } catch {
+          setTrafficEvents([]);
         }
       } else {
-        setTrafficEvents(generateSeedTraffic());
+        setTrafficEvents([]);
+      }
+
+      const storedFunnel = localStorage.getItem('nexus_funnel');
+      if (storedFunnel) {
+        try {
+          const parsedFunnel = JSON.parse(storedFunnel);
+          if (parsedFunnel && typeof parsedFunnel === 'object') {
+            setFunnel({
+              visits: Number(parsedFunnel.visits) || 0,
+              previews: Number(parsedFunnel.previews) || 0,
+              checkouts: Number(parsedFunnel.checkouts) || 0,
+              orders: Number(parsedFunnel.orders) || 0,
+            });
+          }
+        } catch {}
       }
 
       const sessionAuth = sessionStorage.getItem('nexus_admin_auth');
@@ -378,9 +405,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const referrers: TrafficEvent['referrer'][] = [
       'Direct', 'Google Search', 'X / Twitter', 'Instagram', 'YouTube', 'Reddit'
     ];
-    const detectedRef: TrafficEvent['referrer'] = ref && referrers.includes(ref as any)
-      ? (ref as any)
-      : 'Direct';
+    let detectedRef: TrafficEvent['referrer'] = 'Direct';
+    if (ref && referrers.includes(ref as any)) {
+      detectedRef = ref as any;
+    } else if (typeof window !== 'undefined' && document.referrer) {
+      const lower = document.referrer.toLowerCase();
+      if (lower.includes('google')) detectedRef = 'Google Search';
+      else if (lower.includes('t.co') || lower.includes('twitter') || lower.includes('x.com')) detectedRef = 'X / Twitter';
+      else if (lower.includes('instagram')) detectedRef = 'Instagram';
+      else if (lower.includes('youtube') || lower.includes('youtu.be')) detectedRef = 'YouTube';
+      else if (lower.includes('reddit')) detectedRef = 'Reddit';
+    }
 
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const isTablet = typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1024;
@@ -400,11 +435,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       safeSetItem('nexus_traffic', JSON.stringify(updated.slice(0, 400)));
       return updated;
     });
+
+    setFunnel((prev) => {
+      const updated = { ...prev, visits: prev.visits + 1 };
+      safeSetItem('nexus_funnel', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const recordPreview = useCallback(() => {
+    setFunnel((prev) => {
+      const updated = { ...prev, previews: prev.previews + 1 };
+      safeSetItem('nexus_funnel', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const recordCheckoutStep = useCallback(() => {
+    setFunnel((prev) => {
+      const updated = { ...prev, checkouts: prev.checkouts + 1 };
+      safeSetItem('nexus_funnel', JSON.stringify(updated));
+      return updated;
+    });
   }, []);
 
   const getAnalytics = useCallback((timeframe: 'day' | 'week' | 'month'): AnalyticsSummary => {
-    return computeAnalytics(trafficEvents, orders, timeframe);
-  }, [trafficEvents, orders]);
+    return computeAnalytics(trafficEvents, orders, timeframe, funnel);
+  }, [trafficEvents, orders, funnel]);
 
   const addProduct = (data: Omit<Product, 'id'>): Product => {
     const newId = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
@@ -484,7 +541,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const recordOrder = (order: Order) => {
-    setOrders((prev) => [order, ...prev.slice(0, 99)]);
+    const enrichedOrder: Order = {
+      ...order,
+      timestamp: order.timestamp || Date.now(),
+    };
+    setOrders((prev) => [enrichedOrder, ...prev.slice(0, 99)]);
+    setFunnel((prev) => {
+      const updated = { ...prev, orders: prev.orders + 1 };
+      safeSetItem('nexus_funnel', JSON.stringify(updated));
+      return updated;
+    });
     if (order.promoCode) {
       setPromos((prev) =>
         prev.map((p) => {
@@ -501,6 +567,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     addLog('success', `Order #${order.id} received: ${order.currency === 'INR' ? '₹' : '$'}${order.total} from ${order.customerEmail}`);
   };
+
+  const mergeSyncedOrders = useCallback((synced: Order[]) => {
+    if (!Array.isArray(synced) || synced.length === 0) return;
+    setOrders((prev) => {
+      const existingMap = new Map(prev.map((o) => [o.id, o]));
+      synced.forEach((s) => {
+        existingMap.set(s.id, s);
+      });
+      const merged = Array.from(existingMap.values()).sort(
+        (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+      );
+      safeSetItem('nexus_orders', JSON.stringify(merged));
+      return merged;
+    });
+    addLog('info', `Synced ${synced.length} order(s) from payment gateway.`);
+  }, [addLog]);
 
   // Secure server-side login with rate limiting & HTTP-only sessions
   const loginAdmin = async (password: string): Promise<{ success: boolean; message?: string }> => {
@@ -731,6 +813,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSettings,
         recordOrder,
         recordVisit,
+        recordPreview,
+        recordCheckoutStep,
+        mergeSyncedOrders,
+        funnel,
         getAnalytics,
         loginAdmin,
         logoutAdmin,

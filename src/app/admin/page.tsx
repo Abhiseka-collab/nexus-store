@@ -27,12 +27,10 @@ import {
   FileText,
   LineChart,
   TrendingUp,
-  Users,
   DollarSign,
   Percent,
   Eye,
   Globe,
-  Smartphone,
   Tag,
   Copy,
   Mail,
@@ -69,14 +67,17 @@ export default function AdminPage() {
     runSystemDiagnostics,
     clearLogs,
     getAnalytics,
-    formatPrice,
-    getProductPrice,
+    mergeSyncedOrders,
   } = useStore();
 
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState<'products' | 'traffic' | 'settings' | 'orders' | 'promos' | 'diagnostics' | 'backups'>('traffic');
   const [trafficTimeframe, setTrafficTimeframe] = useState<'day' | 'week' | 'month'>('week');
+
+  // Gateway Sync State
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{ message: string; error?: boolean } | null>(null);
 
   // Orders State
   const [orderSearch, setOrderSearch] = useState('');
@@ -146,6 +147,47 @@ export default function AdminPage() {
       }
     }
   }, [isAdminAuthenticated, lockoutRemainingSeconds, loginAdmin]);
+
+  // Sync real orders directly from Razorpay payment gateway
+  const handleSyncOrders = React.useCallback(async () => {
+    setIsSyncing(true);
+    setSyncFeedback(null);
+    try {
+      const res = await fetch('/api/admin/orders');
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setSyncFeedback({
+          message: data.error || 'Failed to sync with Razorpay gateway.',
+          error: true,
+        });
+      } else {
+        if (Array.isArray(data.orders)) {
+          mergeSyncedOrders(data.orders);
+          setSyncFeedback({
+            message:
+              data.count > 0
+                ? `Successfully synced ${data.count} captured payment(s) from Razorpay!`
+                : 'Gateway connected: 0 payments found on Razorpay account.',
+          });
+        }
+      }
+    } catch {
+      setSyncFeedback({
+        message: 'Network error connecting to payment sync endpoint.',
+        error: true,
+      });
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncFeedback(null), 4000);
+    }
+  }, [mergeSyncedOrders]);
+
+  // Auto-sync live orders once logged in
+  React.useEffect(() => {
+    if (isAdminAuthenticated) {
+      handleSyncOrders();
+    }
+  }, [isAdminAuthenticated, handleSyncOrders]);
 
   // Handle Login with rate limiting & hashing
   const handleLogin = async (e: React.FormEvent) => {
@@ -529,6 +571,16 @@ export default function AdminPage() {
             {/* Quick Action Badges */}
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={handleSyncOrders}
+                disabled={isSyncing}
+                className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 transition-all cursor-pointer disabled:opacity-50"
+                title="Fetch live captured payments from Razorpay"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Syncing...' : 'Sync Gateway'}</span>
+              </button>
+
+              <button
                 onClick={exportOrdersToCsv}
                 className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 transition-all cursor-pointer"
                 title="Export all orders to Excel / CSV"
@@ -554,22 +606,35 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {syncFeedback && (
+            <div
+              className={`mb-4 px-3.5 py-2 rounded-xl text-xs font-medium border flex items-center gap-2 animate-fade-in ${
+                syncFeedback.error
+                  ? 'bg-rose-950/40 border-rose-800/50 text-rose-300'
+                  : 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>{syncFeedback.message}</span>
+            </div>
+          )}
+
           {/* Quick Metrics Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
               <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Gross Sales ({trafficTimeframe})</span>
               <span className="text-lg font-black text-white mt-0.5 block">
-                {currencySymbol}{analytics.totalRevenue.toLocaleString()}
+                {currencySymbol}{analytics.totalRevenue.toFixed(2)}
               </span>
-              <span className="text-[10px] text-zinc-400">{orders.length} orders total</span>
+              <span className="text-[10px] text-zinc-400">{orders.length} real checkouts</span>
             </div>
 
             <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
               <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Est. Net Bank Payout</span>
               <span className="text-lg font-black text-emerald-400 mt-0.5 block">
-                {currencySymbol}{Math.max(0, Math.round((analytics.totalRevenue * 0.9764) * 100) / 100).toLocaleString()}
+                {currencySymbol}{Math.max(0, Math.round((analytics.totalRevenue * 0.9764) * 100) / 100).toFixed(2)}
               </span>
-              <span className="text-[10px] text-zinc-400">After ~2.3% Razorpay fee</span>
+              <span className="text-[10px] text-zinc-400">After ~2.36% Razorpay fee</span>
             </div>
 
             <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
@@ -585,7 +650,7 @@ export default function AdminPage() {
               <span className="text-lg font-black text-purple-400 mt-0.5 block">
                 {analytics.conversionRate}%
               </span>
-              <span className="text-[10px] text-zinc-400">Avg ticket: ${analytics.avgOrderValue}</span>
+              <span className="text-[10px] text-zinc-400">AOV: {currencySymbol}{analytics.avgOrderValue.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -875,10 +940,10 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-black text-emerald-400">
-                    {settings.currencySymbol}{analytics.totalRevenue.toLocaleString()}
+                    {currencySymbol}{analytics.totalRevenue.toFixed(2)}
                   </div>
                   <div className="text-[11px] text-zinc-500 mt-0.5">
-                    Avg Basket: ${analytics.avgOrderValue}
+                    Est. Net: {currencySymbol}{Math.max(0, Math.round((analytics.totalRevenue * 0.9764) * 100) / 100).toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -900,13 +965,15 @@ export default function AdminPage() {
               {/* Metric 5 */}
               <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col justify-between col-span-2 sm:col-span-1">
                 <div className="flex items-center justify-between text-zinc-400 mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">System Throughput</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Avg. Order Value</span>
                   <TrendingUp className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-cyan-400">⚡ ~15ms</div>
+                  <div className="text-2xl font-black text-cyan-400">
+                    {currencySymbol}{analytics.avgOrderValue.toFixed(2)}
+                  </div>
                   <div className="text-[11px] text-zinc-500 mt-0.5">
-                    Global Edge CDN Latency
+                    Average revenue per order
                   </div>
                 </div>
               </div>
@@ -921,7 +988,7 @@ export default function AdminPage() {
                     <span>Traffic & Purchase Conversion Timeline</span>
                   </h3>
                   <p className="text-[11px] text-zinc-500 mt-0.5">
-                    Showing visitor volume vs purchases for {trafficTimeframe === 'day' ? 'Today (by hour)' : trafficTimeframe === 'week' ? 'Past 7 Days' : 'Past 30 Days'}.
+                    Showing visitor volume vs purchases for {trafficTimeframe === 'day' ? 'Today (by 3-hour slots)' : trafficTimeframe === 'week' ? 'Past 7 Days' : 'Past 30 Days'}.
                   </p>
                 </div>
 
@@ -939,44 +1006,60 @@ export default function AdminPage() {
 
               {/* SVG / CSS Interactive Graph */}
               <div className="pt-4 pb-2">
-                {(() => {
-                  const maxVisits = Math.max(...analytics.timeline.map((t) => t.visits), 1);
-                  return (
-                    <div className="flex items-end justify-between gap-2 sm:gap-4 h-56 pt-8 px-2 border-b border-zinc-800">
-                      {analytics.timeline.map((point, idx) => {
-                        const heightPct = Math.max(12, Math.round((point.visits / maxVisits) * 100));
-                        return (
-                          <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative">
-                            {/* Hover Tooltip */}
-                            <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-800 text-white text-[10px] font-mono p-2 rounded-lg pointer-events-none shadow-xl border border-zinc-700 whitespace-nowrap z-20">
-                              <div><strong>{point.label}</strong></div>
-                              <div>{point.visits} visits • {point.orders} orders</div>
-                              <div className="text-emerald-400">${point.revenue.toFixed(2)} sales</div>
-                            </div>
+                {analytics.totalVisits === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 border border-dashed border-zinc-800 rounded-xl p-6 text-center">
+                    <LineChart className="w-8 h-8 text-zinc-600 mb-2" />
+                    <p className="text-xs font-semibold text-zinc-400">No visits recorded in this timeframe ({trafficTimeframe}).</p>
+                    <p className="text-[11px] text-zinc-600 mt-1 max-w-sm">
+                      Real website visits and purchase activity will be plotted here live as visitors browse your store.
+                    </p>
+                  </div>
+                ) : (
+                  (() => {
+                    const maxVisits = Math.max(...analytics.timeline.map((t) => t.visits), 1);
+                    return (
+                      <div className="flex items-end justify-between gap-2 sm:gap-4 h-56 pt-8 px-2 border-b border-zinc-800">
+                        {analytics.timeline.map((point, idx) => {
+                          const heightPct = point.visits > 0
+                            ? Math.max(8, Math.round((point.visits / maxVisits) * 100))
+                            : 0;
+                          return (
+                            <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                              {/* Hover Tooltip */}
+                              <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-800 text-white text-[10px] font-mono p-2 rounded-lg pointer-events-none shadow-xl border border-zinc-700 whitespace-nowrap z-20">
+                                <div><strong>{point.label}</strong></div>
+                                <div>{point.visits} visits • {point.orders} orders</div>
+                                <div className="text-emerald-400">${point.revenue.toFixed(2)} sales</div>
+                              </div>
 
-                            {/* Orders Indicator Dot / Tag */}
-                            {point.orders > 0 && (
-                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-zinc-950 mb-1.5 animate-fade-in shadow-xs">
-                                {point.orders}🛒
+                              {/* Orders Indicator Dot / Tag */}
+                              {point.orders > 0 && (
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-zinc-950 mb-1.5 animate-fade-in shadow-xs">
+                                  {point.orders}🛒
+                                </span>
+                              )}
+
+                              {/* Bar */}
+                              <div
+                                style={{ height: point.visits > 0 ? `${heightPct}%` : '3px' }}
+                                className={`w-full max-w-[42px] rounded-t-lg transition-all duration-300 shadow-sm ${
+                                  point.visits > 0
+                                    ? 'bg-gradient-to-t from-indigo-700 to-indigo-500 hover:from-indigo-600 hover:to-indigo-400'
+                                    : 'bg-zinc-800/60'
+                                }`}
+                              />
+
+                              {/* Label */}
+                              <span className="text-[10px] font-medium text-zinc-400 mt-2 truncate w-full text-center">
+                                {point.label}
                               </span>
-                            )}
-
-                            {/* Bar */}
-                            <div
-                              style={{ height: `${heightPct}%` }}
-                              className="w-full max-w-[42px] bg-gradient-to-t from-indigo-700 to-indigo-500 hover:from-indigo-600 hover:to-indigo-400 rounded-t-lg transition-all duration-300 shadow-sm"
-                            />
-
-                            {/* Label */}
-                            <span className="text-[10px] font-medium text-zinc-400 mt-2 truncate w-full text-center">
-                              {point.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
+                )}
               </div>
             </div>
 
@@ -993,22 +1076,31 @@ export default function AdminPage() {
                   <span className="text-[11px] text-zinc-500 font-mono">Visitor Share</span>
                 </div>
 
-                <div className="space-y-3">
-                  {analytics.referrers.map((ref, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-zinc-300 font-medium">{ref.name}</span>
-                        <span className="font-mono text-zinc-400">{ref.count} visits ({ref.percentage}%)</span>
+                {analytics.referrers.length === 0 ? (
+                  <div className="py-8 text-center text-zinc-500 text-xs">
+                    <p className="font-medium text-zinc-400">No external referrers logged yet</p>
+                    <p className="text-[11px] text-zinc-600 mt-1">
+                      Direct visits only. Share your store link on Google, X, Instagram, or YouTube to track acquisition channels.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {analytics.referrers.map((ref, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-zinc-300 font-medium">{ref.name}</span>
+                          <span className="font-mono text-zinc-400">{ref.count} visits ({ref.percentage}%)</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+                          <div
+                            style={{ width: `${ref.percentage}%` }}
+                            className="h-full rounded-full bg-indigo-500"
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
-                        <div
-                          style={{ width: `${ref.percentage}%` }}
-                          className="h-full rounded-full bg-indigo-500"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Conversion Funnel */}
@@ -1018,14 +1110,14 @@ export default function AdminPage() {
                     <TrendingUp className="w-4 h-4 text-emerald-400" />
                     <span>Digital Store Conversion Funnel</span>
                   </h4>
-                  <span className="text-[11px] text-emerald-400 font-semibold">{analytics.conversionRate}% overall</span>
+                  <span className="text-[11px] text-emerald-400 font-semibold">{analytics.funnel.orderRate}% overall</span>
                 </div>
 
                 <div className="space-y-2.5 text-xs">
                   <div className="p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-800 flex justify-between items-center">
                     <div>
                       <span className="font-bold text-white block">1. Total Storefront Visits</span>
-                      <span className="text-[10px] text-zinc-500">Landing & browsing catalog</span>
+                      <span className="text-[10px] text-zinc-500">Landing & browsing catalog ({analytics.funnel.visits} visits)</span>
                     </div>
                     <span className="font-mono font-bold text-indigo-400">100%</span>
                   </div>
@@ -1033,25 +1125,25 @@ export default function AdminPage() {
                   <div className="p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-800 flex justify-between items-center">
                     <div>
                       <span className="font-bold text-white block">2. Product Previews Inspected</span>
-                      <span className="text-[10px] text-zinc-500">Clicked Quick Preview / Spec Details</span>
+                      <span className="text-[10px] text-zinc-500">Opened Quick Preview / Spec Details ({analytics.funnel.previewClicks} clicks)</span>
                     </div>
-                    <span className="font-mono font-bold text-indigo-300">~46%</span>
+                    <span className="font-mono font-bold text-indigo-300">{analytics.funnel.previewRate}%</span>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-800 flex justify-between items-center">
                     <div>
                       <span className="font-bold text-white block">3. Added to Cart & Checkout Open</span>
-                      <span className="text-[10px] text-zinc-500">Showed direct purchase intent</span>
+                      <span className="text-[10px] text-zinc-500">Showed direct purchase intent ({analytics.funnel.checkoutOpens} opens)</span>
                     </div>
-                    <span className="font-mono font-bold text-indigo-200">~18%</span>
+                    <span className="font-mono font-bold text-indigo-200">{analytics.funnel.checkoutRate}%</span>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 flex justify-between items-center">
                     <div>
                       <span className="font-bold text-emerald-300 block">4. Completed Orders & Delivered</span>
-                      <span className="text-[10px] text-emerald-400">Instant file delivery received</span>
+                      <span className="text-[10px] text-emerald-400">Instant file delivery received ({analytics.funnel.ordersCompleted} orders)</span>
                     </div>
-                    <span className="font-mono font-black text-emerald-400">{analytics.conversionRate}%</span>
+                    <span className="font-mono font-black text-emerald-400">{analytics.funnel.orderRate}%</span>
                   </div>
                 </div>
               </div>
@@ -1208,6 +1300,17 @@ export default function AdminPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSyncOrders}
+                  disabled={isSyncing}
+                  className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 border border-zinc-700 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  title="Fetch live captured payments from Razorpay"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Syncing...' : 'Sync Gateway Payments'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={exportOrdersToCsv}

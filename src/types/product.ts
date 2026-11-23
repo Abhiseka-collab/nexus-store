@@ -40,5 +40,6 @@ export interface Order {
   currency?: 'USD' | 'INR';
   promoCode?: string;
   createdAt: string;
+  timestamp?: number;
   downloadToken: string;
 }

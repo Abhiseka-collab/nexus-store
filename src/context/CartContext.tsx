@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, CartItem, Order } from '@/types/product';
 import { PROMO_CODES } from '@/data/products';
 import { useStore } from './StoreContext';
@@ -37,12 +37,19 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { recordOrder, settings, currency, currencySymbol, promos } = useStore();
+  const { recordOrder, recordPreview, recordCheckoutStep, settings, currency, currencySymbol, promos } = useStore();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
+  const [viewingProduct, setViewingProductState] = useState<Product | null>(null);
+
+  const setViewingProduct = useCallback((p: Product | null) => {
+    if (p) {
+      recordPreview();
+    }
+    setViewingProductState(p);
+  }, [recordPreview]);
   const [appliedPromo, setAppliedPromo] = useState<string | null>(settings.promoCode || 'LAUNCH30');
   const [discountRate, setDiscountRate] = useState<number>(settings.promoDiscount || 0.30);
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
@@ -148,6 +155,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const openCheckout = () => {
     if (items.length === 0) return;
+    recordCheckoutStep();
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };

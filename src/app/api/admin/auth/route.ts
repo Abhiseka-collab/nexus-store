@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-
-// Server-side session signing secret
-const AUTH_SECRET =
-  process.env.ADMIN_AUTH_SECRET ||
-  process.env.RAZORPAY_KEY_SECRET ||
-  'nexus_admin_secure_auth_secret_2026';
-
-// Server-side admin password or hash
-// Defaults to "admin" if ADMIN_PASSWORD environment variable is not explicitly set
-const SERVER_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+import { signSession, verifySession, SERVER_ADMIN_PASSWORD } from '@/utils/serverAuth';
 
 // In-memory brute-force rate limiter: IP -> { attempts, lockoutUntil }
 const rateLimitMap = new Map<string, { attempts: number; lockoutUntil: number }>();
@@ -18,32 +9,6 @@ function getClientIp(req: NextRequest): string {
   const forwarded = req.headers.get('x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0].trim();
   return '127.0.0.1';
-}
-
-function signSession(expiryMs: number): string {
-  const expiry = (Date.now() + expiryMs).toString();
-  const hmac = crypto.createHmac('sha256', AUTH_SECRET);
-  hmac.update(expiry);
-  const sig = hmac.digest('hex');
-  return `${expiry}.${sig}`;
-}
-
-function verifySession(sessionCookie: string): boolean {
-  if (!sessionCookie) return false;
-  const parts = sessionCookie.split('.');
-  if (parts.length !== 2) return false;
-  const [expiryStr, sig] = parts;
-  const expiry = parseInt(expiryStr, 10);
-  if (isNaN(expiry) || Date.now() > expiry) return false;
-
-  const hmac = crypto.createHmac('sha256', AUTH_SECRET);
-  hmac.update(expiryStr);
-  const expectedSig = hmac.digest('hex');
-
-  const bufA = Buffer.from(sig, 'hex');
-  const bufB = Buffer.from(expectedSig, 'hex');
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 // Check session
